@@ -24,6 +24,14 @@ const nextConfig = {
       },
     ];
   },
+  // pdfkitなどのNode.js専用モジュールをサーバーサイドのみで使用
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // サーバーサイドでのみ使用するモジュールを外部化しない
+      config.externals = config.externals || [];
+    }
+    return config;
+  },
 };
 
 // PWA設定（本番環境のみ有効化）
