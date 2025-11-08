@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("employee") // "employee" or "admin"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  timecards TimeCard[]
+}
+
+model TimeCard {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // "clock_in" or "clock_out"
+  timestamp   DateTime @default(now())
+  latitude    Float?
+  longitude   Float?
+  ipAddress   String?
+  deviceInfo  String?
+  locationId  String?  // 打刻した場所のID
+  location    Location? @relation(fields: [locationId], references: [id])
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([timestamp])
+}
+
+model Location {
+  id          String   @id @default(cuid())
+  name        String   // 場所の名前（例: "本社"、"支社"）
+  latitude    Float    // 緯度
+  longitude   Float    // 経度
+  radius      Float    @default(100) // 許可範囲（メートル）
+  enabled     Boolean  @default(true) // 有効/無効
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  timecards   TimeCard[]
+  
+  @@index([enabled])
+}
+

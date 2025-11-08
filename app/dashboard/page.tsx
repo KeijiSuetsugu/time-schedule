@@ -1,0 +1,558 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale/ja';
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
+interface TimeCard {
+  id: string;
+  type: 'clock_in' | 'clock_out';
+  timestamp: string;
+  latitude?: number;
+  longitude?: number;
+  locationName?: string;
+}
+
+export default function DashboardPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [clockingIn, setClockingIn] = useState(false);
+  const [timeCards, setTimeCards] = useState<TimeCard[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState<'in' | 'out' | null>(null);
+  const [locationError, setLocationError] = useState<string>('');
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
+  const [employees, setEmployees] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [periodType, setPeriodType] = useState<'monthly' | 'yearly'>('monthly');
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    
+    if (!token || !userStr) {
+      router.push('/');
+      return;
+    }
+
+    const userData = JSON.parse(userStr);
+    setUser(userData);
+    loadTimeCards();
+    checkCurrentStatus();
+    
+    // 管理者の場合は職員一覧を取得
+    if (userData.role === 'admin') {
+      loadEmployees();
+    }
+  }, [router]);
+
+  const loadEmployees = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setEmployees(data.employees || []);
+      }
+    } catch (error) {
+      console.error('Load employees error:', error);
+    }
+  };
+
+  const checkCurrentStatus = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/timecard?limit=1', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.timeCards && data.timeCards.length > 0) {
+          setCurrentStatus(data.timeCards[0].type === 'clock_in' ? 'in' : 'out');
+        }
+      }
+    } catch (error) {
+      console.error('Status check error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTimeCards = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/timecard?limit=10', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTimeCards(data.timeCards || []);
+      }
+    } catch (error) {
+      console.error('Load timecards error:', error);
+    }
+  };
+
+  const handleClock = async (type: 'clock_in' | 'clock_out') => {
+    setClockingIn(true);
+    setLocationError('');
+    setGettingLocation(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      // 位置情報を取得（必須）
+      let latitude: number;
+      let longitude: number;
+      
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            resolve, 
+            reject, 
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0,
+            }
+          );
+        });
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+        setGettingLocation(false);
+      } catch (geoError: any) {
+        setGettingLocation(false);
+        const errorMessage = geoError.code === 1 
+          ? '位置情報の取得が拒否されました。ブラウザの設定で位置情報の許可を有効にしてください。'
+          : geoError.code === 2
+          ? '位置情報を取得できませんでした。GPSが有効か確認してください。'
+          : '位置情報の取得に時間がかかりすぎました。もう一度お試しください。';
+        setLocationError(errorMessage);
+        setClockingIn(false);
+        return;
+      }
+
+      const response = await fetch('/api/timecard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          type,
+          latitude,
+          longitude,
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = '打刻に失敗しました';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || `サーバーエラー (${response.status})`;
+          // 位置情報エラーの詳細を表示
+          if (errorData.allowedLocations && errorData.allowedLocations.length > 0) {
+            const locationsInfo = errorData.allowedLocations
+              .map((loc: any) => `${loc.name} (半径${loc.radius}m)`)
+              .join('\n');
+            errorMessage = `${errorMessage}\n\n許可された場所:\n${locationsInfo}`;
+          }
+        } catch {
+          errorMessage = `サーバーエラー (${response.status})`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+
+      // 状態を更新
+      setCurrentStatus(type === 'clock_in' ? 'in' : 'out');
+      await loadTimeCards();
+      
+      const locationName = data.timeCard?.locationName ? ` (${data.timeCard.locationName})` : '';
+      alert(`${type === 'clock_in' ? '出勤' : '退勤'}打刻が完了しました${locationName}`);
+    } catch (error: any) {
+      let errorMessage = '打刻に失敗しました';
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.name === 'TypeError' && error.message && error.message.includes('fetch')) {
+        errorMessage = 'ネットワークエラー: サーバーに接続できません。インターネット接続を確認してください。';
+      } else {
+        errorMessage = `エラー: ${error.toString()}`;
+      }
+      setLocationError(errorMessage);
+      alert(errorMessage);
+      console.error('Clock error:', error);
+    } finally {
+      setClockingIn(false);
+      setGettingLocation(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/');
+  };
+
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    setExporting(true);
+    try {
+      const token = localStorage.getItem('token');
+      let url = `/api/timecard/export?format=${format}&periodType=${periodType}&year=${selectedYear}`;
+      
+      if (periodType === 'monthly') {
+        url += `&month=${selectedMonth}`;
+      }
+      
+      if (selectedEmployeeId) {
+        url += `&userId=${selectedEmployeeId}`;
+      }
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'エクスポートに失敗しました';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || `サーバーエラー (${response.status})`;
+        } catch {
+          errorMessage = `サーバーエラー (${response.status})`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // ファイルをダウンロード
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || `打刻履歴.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      alert(`${format === 'excel' ? 'Excel' : 'PDF'}ファイルをダウンロードしました`);
+    } catch (error: any) {
+      let errorMessage = 'エクスポートに失敗しました';
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.name === 'TypeError' && error.message && error.message.includes('fetch')) {
+        errorMessage = 'ネットワークエラー: サーバーに接続できません。インターネット接続を確認してください。';
+      } else {
+        errorMessage = `エラー: ${error.toString()}`;
+      }
+      alert(errorMessage);
+      console.error('Export error:', error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // 年と月の選択肢を生成
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 3 }, (_, i) => currentYear - 1 + i);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen pb-20">
+      {/* ヘッダー */}
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">タイムカード</h1>
+            <p className="text-sm text-gray-600">{user?.name}さん</p>
+          </div>
+          <div className="flex gap-2">
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => router.push('/admin/locations')}
+                className="text-sm text-primary-600 hover:text-primary-700 px-3 py-1 rounded"
+              >
+                場所設定
+              </button>
+            )}
+            <button
+              onClick={handleLogout}
+              className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1 rounded"
+            >
+              ログアウト
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* 現在の時刻表示 */}
+        <div className="card text-center">
+          <p className="text-sm text-gray-600 mb-2">現在の時刻</p>
+          <p className="text-3xl font-bold text-gray-900">
+            {format(new Date(), 'HH:mm:ss', { locale: ja })}
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            {format(new Date(), 'yyyy年MM月dd日(E)', { locale: ja })}
+          </p>
+        </div>
+
+        {/* 打刻ボタン */}
+        <div className="card">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">打刻</h2>
+          
+          {gettingLocation && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700 text-center">
+                📍 位置情報を取得しています...
+              </p>
+            </div>
+          )}
+          
+          {locationError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700 whitespace-pre-line">
+                {locationError}
+              </p>
+            </div>
+          )}
+          
+          <div className="space-y-3">
+            <button
+              onClick={() => handleClock('clock_in')}
+              disabled={clockingIn || currentStatus === 'in' || gettingLocation}
+              className={`w-full py-4 rounded-lg font-semibold text-lg transition-colors ${
+                currentStatus === 'in' || gettingLocation
+                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  : 'bg-green-500 text-white hover:bg-green-600 active:bg-green-700'
+              }`}
+            >
+              {gettingLocation ? '位置情報取得中...' : clockingIn ? '処理中...' : '出勤'}
+            </button>
+
+            <button
+              onClick={() => handleClock('clock_out')}
+              disabled={clockingIn || currentStatus === 'out' || gettingLocation}
+              className={`w-full py-4 rounded-lg font-semibold text-lg transition-colors ${
+                currentStatus === 'out' || gettingLocation
+                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  : 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700'
+              }`}
+            >
+              {gettingLocation ? '位置情報取得中...' : clockingIn ? '処理中...' : '退勤'}
+            </button>
+          </div>
+
+          {currentStatus && (
+            <p className="mt-4 text-sm text-center text-gray-600">
+              現在の状態: {currentStatus === 'in' ? '出勤中' : '退勤済み'}
+            </p>
+          )}
+        </div>
+
+        {/* 履歴 */}
+        <div className="card">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">打刻履歴</h2>
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="text-sm text-primary-600 hover:text-primary-700"
+            >
+              {showHistory ? '閉じる' : '詳細を見る'}
+            </button>
+          </div>
+
+          {showHistory && (
+            <div className="space-y-2">
+              {timeCards.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">打刻履歴がありません</p>
+              ) : (
+                timeCards.map((timeCard) => (
+                  <div
+                    key={timeCard.id}
+                    className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div>
+                      <span
+                        className={`inline-block px-2 py-1 rounded text-xs font-semibold mr-2 ${
+                          timeCard.type === 'clock_in'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {timeCard.type === 'clock_in' ? '出勤' : '退勤'}
+                      </span>
+                      <span className="text-sm text-gray-700">
+                        {format(new Date(timeCard.timestamp), 'MM/dd HH:mm', { locale: ja })}
+                        {timeCard.locationName && ` - ${timeCard.locationName}`}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* エクスポート */}
+        {user?.role === 'admin' && (
+          <div className="card">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">打刻履歴のエクスポート</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              職員を選択して、月次または年間の打刻データをExcel/PDF形式でダウンロードできます。
+            </p>
+
+            <div className="space-y-4">
+              {/* 職員選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  職員を選択
+                </label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">全職員（自分のデータ）</option>
+                  {employees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.name} ({employee.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 期間タイプ選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  期間タイプ
+                </label>
+                <select
+                  value={periodType}
+                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
+                  className="input-field"
+                >
+                  <option value="monthly">15日締め月次</option>
+                  <option value="yearly">年間</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    年
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="input-field"
+                  >
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}年
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {periodType === 'monthly' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      月
+                    </label>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                      className="input-field"
+                    >
+                      {months.map((month) => (
+                        <option key={month} value={month}>
+                          {month}月
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleExport('excel')}
+                  disabled={exporting}
+                  className="flex-1 btn-primary flex items-center justify-center gap-2"
+                >
+                  {exporting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>処理中...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>📊</span>
+                      <span>Excelでダウンロード</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => handleExport('pdf')}
+                  disabled={exporting}
+                  className="flex-1 btn-primary flex items-center justify-center gap-2"
+                >
+                  {exporting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>処理中...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>📄</span>
+                      <span>PDFでダウンロード</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
