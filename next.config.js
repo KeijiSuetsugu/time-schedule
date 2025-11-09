@@ -2,28 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  // モバイル通信からのアクセスを許可
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS',
-          },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization',
-          },
-        ],
-      },
-    ];
-  },
   // pdfkitなどのNode.js専用モジュールをサーバーサイドのみで使用
   webpack: (config, { isServer }) => {
     if (isServer) {

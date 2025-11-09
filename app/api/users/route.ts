@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/auth';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // 全職員一覧を取得（管理者のみ）
 export async function GET(request: NextRequest) {
   try {

@@ -5,6 +5,10 @@ import { getUserIdFromRequest } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/lib/rateLimit';
 import { checkLocationWithinRange } from '@/lib/location';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const timeCardSchema = z.object({
   type: z.enum(['clock_in', 'clock_out']),
   latitude: z.number(),

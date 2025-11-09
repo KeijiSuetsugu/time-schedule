@@ -5,6 +5,10 @@ import { hashPassword, verifyPassword } from '@/lib/password';
 import { generateToken } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/lib/rateLimit';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),

@@ -5,6 +5,10 @@ import { getCutoffPeriod, getCutoffPeriodByYearMonth, getYearPeriod } from '@/li
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 interface TimeCardRecord {
   date: Date;
   clockIn: Date;

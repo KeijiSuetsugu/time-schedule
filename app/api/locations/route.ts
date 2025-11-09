@@ -4,6 +4,10 @@ import { prisma } from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/lib/rateLimit';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const locationSchema = z.object({
   name: z.string().min(1),
   latitude: z.number().min(-90).max(90),
