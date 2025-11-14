@@ -1,26 +1,31 @@
 import { PrismaClient } from '@prisma/client';
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+const prismaClientSingleton = () => {
+  const databaseUrl = process.env.POSTGRES_PRISMA_URL;
+
+  if (!databaseUrl) {
+    throw new Error('POSTGRES_PRISMA_URL is not set');
+  }
+
+  return new PrismaClient({
+    datasources: {
+      db: {
+        url: databaseUrl,
+      },
+    },
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
 };
 
-// Prismaクライアントの初期化
-console.log('Initializing Prisma Client...');
-console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
-console.log('POSTGRES_PRISMA_URL exists:', !!process.env.POSTGRES_PRISMA_URL);
-console.log('NODE_ENV:', process.env.NODE_ENV);
+declare const globalThis: {
+  prismaGlobal: ReturnType<typeof prismaClientSingleton>;
+} & typeof global;
 
-// Vercelの場合はPOSTGRES_PRISMA_URLを優先
-const databaseUrl = process.env.POSTGRES_PRISMA_URL || process.env.DATABASE_URL;
+const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  datasources: {
-    db: {
-      url: databaseUrl,
-    },
-  },
-});
+export default prisma;
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.prismaGlobal = prisma;
+}
 
