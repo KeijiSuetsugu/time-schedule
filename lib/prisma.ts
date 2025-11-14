@@ -1,10 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 
 const prismaClientSingleton = () => {
-  const databaseUrl = process.env.POSTGRES_PRISMA_URL;
+  const databaseUrl = process.env.PRISMA_DATABASE_URL;
 
   if (!databaseUrl) {
-    throw new Error('POSTGRES_PRISMA_URL is not set');
+    throw new Error('PRISMA_DATABASE_URL is not set');
   }
 
   return new PrismaClient({
