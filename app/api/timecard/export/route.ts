@@ -276,9 +276,9 @@ async function generateExcelMultiUser(
 
     // バッファに書き込み
     console.log('Writing Excel buffer...');
-    const buffer = await workbook.xlsx.writeBuffer() as Buffer;
-    const bufferSize = buffer ? buffer.length : 0;
-    console.log('Excel buffer created, size:', bufferSize);
+    const excelBuffer = await workbook.xlsx.writeBuffer();
+    const buffer = Buffer.from(excelBuffer);
+    console.log('Excel buffer created, size:', buffer.length);
 
     // ファイル名を生成
     const fileName = `打刻履歴_${displayName}_${periodLabel}.xlsx`;
@@ -344,7 +344,8 @@ async function generateExcel(userName: string, periodLabel: string, records: Tim
   ];
 
   // バッファに書き込み
-  const buffer = await workbook.xlsx.writeBuffer();
+  const excelBuffer = await workbook.xlsx.writeBuffer();
+  const buffer = Buffer.from(excelBuffer);
 
   return new NextResponse(buffer, {
     headers: {
