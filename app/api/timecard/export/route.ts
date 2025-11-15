@@ -100,10 +100,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log('Target users:', targetUsers.length);
+    console.log('Period:', period);
+
     // 全ユーザーの打刻履歴を取得して処理
     const allRecords: Array<{ userName: string; userDepartment: string; records: TimeCardRecord[] }> = [];
 
     for (const targetUser of targetUsers) {
+      console.log('Processing user:', targetUser.name);
       // 打刻履歴を取得
       const timeCards = await prisma.timeCard.findMany({
         where: {
@@ -158,9 +162,15 @@ export async function GET(request: NextRequest) {
         ? targetUsers[0].name 
         : '全職員';
 
+    console.log('Display name:', displayName);
+    console.log('All records count:', allRecords.length);
+    console.log('Format:', format);
+
     if (format === 'excel') {
+      console.log('Generating Excel...');
       return generateExcelMultiUser(displayName, period.periodLabel, allRecords);
     } else if (format === 'pdf') {
+      console.log('Generating PDF...');
       return generatePDFMultiUser(displayName, period.periodLabel, allRecords);
     } else {
       return NextResponse.json({
@@ -180,8 +190,15 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     console.error('Export error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('Error details:', { errorMessage, errorStack });
+    
     return NextResponse.json(
-      { error: 'サーバーエラーが発生しました' },
+      { 
+        error: 'サーバーエラーが発生しました',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      },
       { status: 500 }
     );
   }
@@ -192,8 +209,11 @@ async function generateExcelMultiUser(
   periodLabel: string,
   allRecords: Array<{ userName: string; userDepartment: string; records: TimeCardRecord[] }>
 ) {
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet('打刻履歴');
+  try {
+    console.log('generateExcelMultiUser called with:', { displayName, periodLabel, recordsCount: allRecords.length });
+    
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('打刻履歴');
 
   // タイトル行を追加
   worksheet.addRow([`${displayName} - 打刻履歴 (${periodLabel})`]);
@@ -254,18 +274,25 @@ async function generateExcelMultiUser(
     { width: 15 },
   ];
 
-  // バッファに書き込み
-  const buffer = await workbook.xlsx.writeBuffer();
+    // バッファに書き込み
+    console.log('Writing Excel buffer...');
+    const buffer = await workbook.xlsx.writeBuffer();
+    console.log('Excel buffer created, size:', buffer.length);
 
-  // ファイル名を生成
-  const fileName = `打刻履歴_${displayName}_${periodLabel}.xlsx`;
+    // ファイル名を生成
+    const fileName = `打刻履歴_${displayName}_${periodLabel}.xlsx`;
+    console.log('Excel file name:', fileName);
 
-  return new NextResponse(buffer, {
-    headers: {
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
-    },
-  });
+    return new NextResponse(buffer, {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
+      },
+    });
+  } catch (error) {
+    console.error('Error in generateExcelMultiUser:', error);
+    throw error;
+  }
 }
 
 async function generateExcel(userName: string, periodLabel: string, records: TimeCardRecord[]) {
@@ -332,8 +359,11 @@ async function generatePDFMultiUser(
   allRecords: Array<{ userName: string; userDepartment: string; records: TimeCardRecord[] }>
 ): Promise<NextResponse> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50 });
-    const chunks: Buffer[] = [];
+    try {
+      console.log('generatePDFMultiUser called with:', { displayName, periodLabel, recordsCount: allRecords.length });
+      
+      const doc = new PDFDocument({ margin: 50 });
+      const chunks: Buffer[] = [];
 
     doc.on('data', (chunk) => chunks.push(chunk));
     doc.on('end', () => {
@@ -403,7 +433,12 @@ async function generatePDFMultiUser(
       }
     }
 
-    doc.end();
+      doc.end();
+      console.log('PDF generation completed');
+    } catch (error) {
+      console.error('Error in generatePDFMultiUser:', error);
+      reject(error);
+    }
   });
 }
 
