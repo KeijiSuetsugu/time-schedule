@@ -14,7 +14,9 @@
     "db:migrate": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:reset": "tsx scripts/reset-database.ts",
-    "make-admin": "tsx scripts/make-admin.ts"
+    "make-admin": "tsx scripts/make-admin.ts",
+    "update-department": "tsx scripts/update-user-department.ts",
+    "set-department": "tsx scripts/set-department.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",

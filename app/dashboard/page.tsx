@@ -36,7 +36,8 @@ export default function DashboardPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
-  const [employees, setEmployees] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
+  const [employees, setEmployees] = useState<Array<{ id: string; name: string; email: string; department?: string }>>([]);
   const [periodType, setPeriodType] = useState<'monthly' | 'yearly'>('monthly');
 
   useEffect(() => {
@@ -231,6 +232,10 @@ export default function DashboardPage() {
       
       if (selectedEmployeeId) {
         url += `&userId=${selectedEmployeeId}`;
+      }
+      
+      if (selectedDepartment) {
+        url += `&department=${encodeURIComponent(selectedDepartment)}`;
       }
       
       const response = await fetch(url, {
@@ -480,6 +485,29 @@ export default function DashboardPage() {
             </p>
 
             <div className="space-y-4">
+              {/* 部署選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  部署でフィルター
+                </label>
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => {
+                    setSelectedDepartment(e.target.value);
+                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
+                  }}
+                  className="input-field"
+                >
+                  <option value="">全部署</option>
+                  <option value="看護師">看護師</option>
+                  <option value="クラーク">クラーク</option>
+                  <option value="放射線科">放射線科</option>
+                  <option value="リハビリ">リハビリ</option>
+                  <option value="リハ助手">リハ助手</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
+
               {/* 職員選択 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -490,12 +518,16 @@ export default function DashboardPage() {
                   onChange={(e) => setSelectedEmployeeId(e.target.value)}
                   className="input-field"
                 >
-                  <option value="">全職員（自分のデータ）</option>
-                  {employees.map((employee) => (
-                    <option key={employee.id} value={employee.id}>
-                      {employee.name} ({employee.email})
-                    </option>
-                  ))}
+                  <option value="">
+                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員（自分のデータ）'}
+                  </option>
+                  {employees
+                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
+                    .map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} ({employee.department || '部署未設定'})
+                      </option>
+                    ))}
                 </select>
               </div>
 
