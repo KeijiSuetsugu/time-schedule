@@ -430,6 +430,36 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {/* 打刻申請 */}
+        <div className="card">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">打刻漏れ申請</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            打刻を忘れた場合は、こちらから申請してください。管理者が承認すると打刻履歴に反映されます。
+          </p>
+          <button
+            onClick={() => router.push('/timecard-request')}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+          >
+            打刻漏れを申請する
+          </button>
+        </div>
+
+        {/* 管理者用：申請管理 */}
+        {user?.role === 'admin' && (
+          <div className="card">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">打刻申請管理</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              職員からの打刻漏れ申請を確認・承認できます。
+            </p>
+            <button
+              onClick={() => router.push('/admin/timecard-requests')}
+              className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+            >
+              申請を管理する
+            </button>
+          </div>
+        )}
+
         {/* エクスポート */}
         {user?.role === 'admin' && (
           <div className="card">

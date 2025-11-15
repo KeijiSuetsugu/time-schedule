@@ -19,6 +19,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   timecards TimeCard[]
+  timeCardRequests TimeCardRequest[]
 }
 
 model TimeCard {
@@ -51,5 +52,24 @@ model Location {
   timecards   TimeCard[]
   
   @@index([enabled])
+}
+
+model TimeCardRequest {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestType     String   // "clock_in" or "clock_out"
+  requestedTime   DateTime // 申請する打刻時刻
+  reason          String   // 申請理由
+  status          String   @default("pending") // "pending", "approved", "rejected"
+  reviewedBy      String?  // 承認/却下した管理者のID
+  reviewedAt      DateTime? // 承認/却下日時
+  reviewComment   String?  // 管理者のコメント
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
 }
 
