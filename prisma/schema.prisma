@@ -16,6 +16,7 @@ model User {
   name      String
   password  String
   role      String   @default("employee") // "employee" or "admin"
+  department String? // 部署: "看護師", "クラーク", "放射線科", "リハビリ", "リハ助手", "その他"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   timecards TimeCard[]

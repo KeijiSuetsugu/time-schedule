@@ -10,6 +10,7 @@ interface User {
   email: string;
   name: string;
   role: string;
+  department?: string;
 }
 
 interface TimeCard {
@@ -322,15 +323,25 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* 現在の時刻表示 */}
-        <div className="card text-center">
-          <p className="text-sm text-gray-600 mb-2">現在の時刻</p>
-          <p className="text-3xl font-bold text-gray-900">
-            {format(new Date(), 'HH:mm:ss', { locale: ja })}
-          </p>
-          <p className="text-sm text-gray-500 mt-1">
-            {format(new Date(), 'yyyy年MM月dd日(E)', { locale: ja })}
-          </p>
+        {/* ユーザー情報 */}
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">{user?.name}</h2>
+              {user?.department && (
+                <p className="text-sm text-gray-600 mt-1">部署: {user.department}</p>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">現在の時刻</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {format(new Date(), 'HH:mm:ss', { locale: ja })}
+              </p>
+              <p className="text-xs text-gray-500">
+                {format(new Date(), 'yyyy年MM月dd日(E)', { locale: ja })}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* 打刻ボタン */}

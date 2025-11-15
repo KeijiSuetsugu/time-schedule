@@ -18,6 +18,7 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   name: z.string().min(1),
+  department: z.string().min(1, '部署を選択してください'),
 });
 
 export async function POST(request: NextRequest) {
@@ -58,12 +59,13 @@ export async function POST(request: NextRequest) {
           email: user.email,
           name: user.name,
           role: user.role,
+          department: user.department,
         },
       });
     }
 
     if (action === 'register') {
-      const { email, password, name } = registerSchema.parse(body);
+      const { email, password, name, department } = registerSchema.parse(body);
       
       const existingUser = await prisma.user.findUnique({
         where: { email },
@@ -82,6 +84,7 @@ export async function POST(request: NextRequest) {
           email,
           password: hashedPassword,
           name,
+          department,
         },
       });
 
@@ -98,6 +101,7 @@ export async function POST(request: NextRequest) {
           email: user.email,
           name: user.name,
           role: user.role,
+          department: user.department,
         },
       });
     }

@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [department, setDepartment] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -35,7 +36,7 @@ export default function LoginPage() {
           action: isLogin ? 'login' : 'register',
           email,
           password,
-          ...(isLogin ? {} : { name }),
+          ...(isLogin ? {} : { name, department }),
         }),
       });
 
@@ -94,20 +95,43 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  お名前
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="input-field"
-                  required
-                  placeholder="山田 太郎"
-                />
-              </div>
+              <>
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                    お名前
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="input-field"
+                    required
+                    placeholder="山田 太郎"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
+                    部署
+                  </label>
+                  <select
+                    id="department"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    className="input-field"
+                    required
+                  >
+                    <option value="">選択してください</option>
+                    <option value="看護師">看護師</option>
+                    <option value="クラーク">クラーク</option>
+                    <option value="放射線科">放射線科</option>
+                    <option value="リハビリ">リハビリ</option>
+                    <option value="リハ助手">リハ助手</option>
+                    <option value="その他">その他</option>
+                  </select>
+                </div>
+              </>
             )}
 
             <div>
