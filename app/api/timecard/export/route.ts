@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/auth';
 import { getCutoffPeriod, getCutoffPeriodByYearMonth, getYearPeriod } from '@/lib/cutoff';
 import ExcelJS from 'exceljs';
-import PDFDocument from 'pdfkit';
 
 // 動的レンダリングを強制
 export const dynamic = 'force-dynamic';
@@ -174,32 +173,14 @@ export async function GET(request: NextRequest) {
         console.error('Excel generation error:', excelError);
         throw new Error(`Excel生成エラー: ${excelError instanceof Error ? excelError.message : 'Unknown'}`);
       }
-    } else if (format === 'pdf') {
-      console.log('Generating PDF...');
-      // PDF生成が失敗する場合は、JSONでデータを返す
-      return NextResponse.json(
-        { 
-          error: 'PDF生成機能は現在メンテナンス中です。Excelエクスポートをご利用ください。',
-          message: 'PDFKit does not support Japanese fonts in Vercel environment. Please use Excel export instead.',
-          data: {
-            period: period.periodLabel,
-            users: allRecords.map(u => ({
-              userName: u.userName,
-              userDepartment: u.userDepartment,
-              recordCount: u.records.length,
-            })),
-          },
-        },
-        { status: 501 }
-      );
-      /*
+    } else if (format === 'markdown' || format === 'md') {
+      console.log('Generating Markdown...');
       try {
-        return await generatePDFMultiUser(displayName, period.periodLabel, allRecords);
-      } catch (pdfError) {
-        console.error('PDF generation error:', pdfError);
-        throw new Error(`PDF生成エラー: ${pdfError instanceof Error ? pdfError.message : 'Unknown'}`);
+        return generateMarkdownMultiUser(displayName, period.periodLabel, allRecords);
+      } catch (mdError) {
+        console.error('Markdown generation error:', mdError);
+        throw new Error(`Markdown生成エラー: ${mdError instanceof Error ? mdError.message : 'Unknown'}`);
       }
-      */
     } else {
       return NextResponse.json({
         period: period.periodLabel,
@@ -387,179 +368,52 @@ async function generateExcel(userName: string, periodLabel: string, records: Tim
   });
 }
 
-async function generatePDFMultiUser(
+function generateMarkdownMultiUser(
   displayName: string,
   periodLabel: string,
   allRecords: Array<{ userName: string; userDepartment: string; records: TimeCardRecord[] }>
-): Promise<NextResponse> {
-  return new Promise((resolve, reject) => {
-    try {
-      console.log('generatePDFMultiUser called with:', { displayName, periodLabel, recordsCount: allRecords.length });
-      
-      const doc = new PDFDocument({ 
-        margin: 50,
-        bufferPages: true,
-      });
-      const chunks: Buffer[] = [];
+): NextResponse {
+  console.log('generateMarkdownMultiUser called with:', { displayName, periodLabel, recordsCount: allRecords.length });
+  
+  let markdown = `# ${displayName} - 打刻履歴\n\n`;
+  markdown += `**期間**: ${periodLabel}\n\n`;
+  markdown += `---\n\n`;
 
-    doc.on('data', (chunk) => chunks.push(chunk));
-    doc.on('end', () => {
-      console.log('PDF chunks collected:', chunks.length);
-      const buffer = Buffer.concat(chunks);
-      console.log('PDF buffer size:', buffer.length);
-      const fileName = `timecard_${Date.now()}.pdf`;
-      resolve(
-        new NextResponse(buffer, {
-          headers: {
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="${fileName}"`,
-          },
-        })
-      );
-    });
-    doc.on('error', (err) => {
-      console.error('PDF generation error:', err);
-      reject(err);
-    });
-
-    // タイトル（ASCII文字のみ使用）
-    doc.fontSize(16).font('Helvetica-Bold').text(`Timecard Report - ${displayName}`, { align: 'center' });
-    doc.fontSize(12).font('Helvetica').text(`Period: ${periodLabel}`, { align: 'center' });
-    doc.moveDown();
-
-    // 各ユーザーのデータを追加
-    for (const userRecord of allRecords) {
-      // ユーザー名と部署
-      doc.fontSize(14).font('Helvetica-Bold').text(`${userRecord.userName} (${userRecord.userDepartment})`);
-      doc.moveDown(0.5);
-
-      // テーブルヘッダー（ASCII文字のみ）
-      const tableTop = doc.y;
-      doc.fontSize(10).font('Helvetica-Bold');
-      doc.text('Date', 50, tableTop);
-      doc.text('Clock In', 120, tableTop);
-      doc.text('Clock Out', 200, tableTop);
-      doc.text('Work Time', 280, tableTop);
-      doc.text('Location', 360, tableTop);
-
-      // データ行
-      let y = tableTop + 20;
-      doc.font('Helvetica');
-      userRecord.records.forEach((record) => {
-        doc.fontSize(9);
-        const dateStr = `${record.date.getFullYear()}/${String(record.date.getMonth() + 1).padStart(2, '0')}/${String(record.date.getDate()).padStart(2, '0')}`;
-        const clockInStr = `${String(record.clockIn.getHours()).padStart(2, '0')}:${String(record.clockIn.getMinutes()).padStart(2, '0')}`;
-        const clockOutStr = `${String(record.clockOut.getHours()).padStart(2, '0')}:${String(record.clockOut.getMinutes()).padStart(2, '0')}`;
-        
-        doc.text(dateStr, 50, y);
-        doc.text(clockInStr, 120, y);
-        doc.text(clockOutStr, 200, y);
-        doc.text(record.workTime, 280, y);
-        doc.text(record.location, 360, y);
-        y += 20;
-
-        // ページが足りなくなったら新しいページを追加
-        if (y > 700) {
-          doc.addPage();
-          y = 50;
-        }
-      });
-
-      // 合計行
-      const totalMinutes = userRecord.records.reduce((sum, r) => sum + r.workMinutes, 0);
-      const totalHours = Math.floor(totalMinutes / 60);
-      const totalMins = Math.floor(totalMinutes % 60);
-      doc.fontSize(10).font('Helvetica-Bold');
-      doc.text('Total', 50, y);
-      doc.text(`${totalHours}:${String(totalMins).padStart(2, '0')}`, 280, y);
-
-      // 次のユーザーのために改ページ
-      if (allRecords.indexOf(userRecord) < allRecords.length - 1) {
-        doc.addPage();
-      }
-    }
-
-      doc.end();
-      console.log('PDF generation completed');
-    } catch (error) {
-      console.error('Error in generatePDFMultiUser:', error);
-      reject(error);
-    }
-  });
-}
-
-async function generatePDF(userName: string, periodLabel: string, records: TimeCardRecord[]): Promise<NextResponse> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ 
-      margin: 50,
-      bufferPages: true,
-    });
-    const chunks: Buffer[] = [];
-
-    doc.on('data', (chunk) => chunks.push(chunk));
-    doc.on('end', () => {
-      const buffer = Buffer.concat(chunks);
-      const fileName = `timecard_${Date.now()}.pdf`;
-      resolve(
-        new NextResponse(buffer, {
-          headers: {
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="${fileName}"`,
-          },
-        })
-      );
-    });
-    doc.on('error', (err) => {
-      console.error('PDF generation error:', err);
-      reject(err);
-    });
-
-    // タイトル（ASCII文字のみ）
-    doc.fontSize(16).font('Helvetica-Bold').text(`Timecard Report - ${userName}`, { align: 'center' });
-    doc.fontSize(12).font('Helvetica').text(`Period: ${periodLabel}`, { align: 'center' });
-    doc.moveDown();
-
-    // テーブルヘッダー（ASCII文字のみ）
-    const tableTop = doc.y;
-    doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('Date', 50, tableTop);
-    doc.text('Clock In', 120, tableTop);
-    doc.text('Clock Out', 200, tableTop);
-    doc.text('Work Time', 280, tableTop);
-    doc.text('Location', 360, tableTop);
-
+  // 各ユーザーのデータを追加
+  for (const userRecord of allRecords) {
+    markdown += `## ${userRecord.userName} (${userRecord.userDepartment})\n\n`;
+    
+    // テーブルヘッダー
+    markdown += `| 日付 | 出勤時刻 | 退勤時刻 | 勤務時間 | 場所 |\n`;
+    markdown += `|------|----------|----------|----------|------|\n`;
+    
     // データ行
-    let y = tableTop + 20;
-    doc.font('Helvetica');
-    records.forEach((record) => {
-      doc.fontSize(9);
-      const dateStr = `${record.date.getFullYear()}/${String(record.date.getMonth() + 1).padStart(2, '0')}/${String(record.date.getDate()).padStart(2, '0')}`;
-      const clockInStr = `${String(record.clockIn.getHours()).padStart(2, '0')}:${String(record.clockIn.getMinutes()).padStart(2, '0')}`;
-      const clockOutStr = `${String(record.clockOut.getHours()).padStart(2, '0')}:${String(record.clockOut.getMinutes()).padStart(2, '0')}`;
+    userRecord.records.forEach((record) => {
+      const dateStr = record.date.toLocaleDateString('ja-JP');
+      const clockInStr = record.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+      const clockOutStr = record.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
       
-      doc.text(dateStr, 50, y);
-      doc.text(clockInStr, 120, y);
-      doc.text(clockOutStr, 200, y);
-      doc.text(record.workTime, 280, y);
-      doc.text(record.location, 360, y);
-      y += 20;
-
-      // ページ分割
-      if (y > 750) {
-        doc.addPage();
-        y = 50;
-      }
+      markdown += `| ${dateStr} | ${clockInStr} | ${clockOutStr} | ${record.workTime} | ${record.location} |\n`;
     });
-
-    // 合計
-    const totalMinutes = records.reduce((sum, r) => sum + r.workMinutes, 0);
+    
+    // 合計行
+    const totalMinutes = userRecord.records.reduce((sum, r) => sum + r.workMinutes, 0);
     const totalHours = Math.floor(totalMinutes / 60);
     const totalMins = Math.floor(totalMinutes % 60);
-    doc.font('Helvetica-Bold');
-    doc.text('Total', 50, y);
-    doc.text(`${totalHours}:${String(totalMins).padStart(2, '0')}`, 280, y);
+    markdown += `| **合計** | | | **${totalHours}:${String(totalMins).padStart(2, '0')}** | |\n\n`;
+    
+    markdown += `---\n\n`;
+  }
 
-    doc.end();
+  // ファイル名を生成
+  const fileName = `打刻履歴_${displayName}_${periodLabel}.md`;
+  console.log('Markdown file name:', fileName);
+
+  return new NextResponse(markdown, {
+    headers: {
+      'Content-Type': 'text/markdown; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
+    },
   });
 }
 
