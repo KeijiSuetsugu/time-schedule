@@ -364,27 +364,35 @@ async function generatePDFMultiUser(
     try {
       console.log('generatePDFMultiUser called with:', { displayName, periodLabel, recordsCount: allRecords.length });
       
-      const doc = new PDFDocument({ margin: 50 });
+      const doc = new PDFDocument({ 
+        margin: 50,
+        bufferPages: true,
+      });
       const chunks: Buffer[] = [];
 
     doc.on('data', (chunk) => chunks.push(chunk));
     doc.on('end', () => {
+      console.log('PDF chunks collected:', chunks.length);
       const buffer = Buffer.concat(chunks);
-      const fileName = `打刻履歴_${displayName}_${periodLabel}.pdf`;
+      console.log('PDF buffer size:', buffer.length);
+      const fileName = `timecard_${Date.now()}.pdf`;
       resolve(
         new NextResponse(buffer, {
           headers: {
             'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
+            'Content-Disposition': `attachment; filename="${fileName}"`,
           },
         })
       );
     });
-    doc.on('error', reject);
+    doc.on('error', (err) => {
+      console.error('PDF generation error:', err);
+      reject(err);
+    });
 
-    // タイトル
-    doc.fontSize(16).font('Helvetica-Bold').text(`${displayName} - 打刻履歴`, { align: 'center' });
-    doc.fontSize(12).font('Helvetica').text(`期間: ${periodLabel}`, { align: 'center' });
+    // タイトル（ASCII文字のみ使用）
+    doc.fontSize(16).font('Helvetica-Bold').text(`Timecard Report - ${displayName}`, { align: 'center' });
+    doc.fontSize(12).font('Helvetica').text(`Period: ${periodLabel}`, { align: 'center' });
     doc.moveDown();
 
     // 各ユーザーのデータを追加
@@ -393,25 +401,29 @@ async function generatePDFMultiUser(
       doc.fontSize(14).font('Helvetica-Bold').text(`${userRecord.userName} (${userRecord.userDepartment})`);
       doc.moveDown(0.5);
 
-      // テーブルヘッダー
+      // テーブルヘッダー（ASCII文字のみ）
       const tableTop = doc.y;
       doc.fontSize(10).font('Helvetica-Bold');
-      doc.text('日付', 50, tableTop);
-      doc.text('出勤', 120, tableTop);
-      doc.text('退勤', 180, tableTop);
-      doc.text('勤務時間', 240, tableTop);
-      doc.text('場所', 310, tableTop);
+      doc.text('Date', 50, tableTop);
+      doc.text('Clock In', 120, tableTop);
+      doc.text('Clock Out', 200, tableTop);
+      doc.text('Work Time', 280, tableTop);
+      doc.text('Location', 360, tableTop);
 
       // データ行
       let y = tableTop + 20;
       doc.font('Helvetica');
       userRecord.records.forEach((record) => {
         doc.fontSize(9);
-        doc.text(record.date.toLocaleDateString('ja-JP'), 50, y);
-        doc.text(record.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }), 120, y);
-        doc.text(record.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }), 180, y);
-        doc.text(record.workTime, 240, y);
-        doc.text(record.location, 310, y);
+        const dateStr = `${record.date.getFullYear()}/${String(record.date.getMonth() + 1).padStart(2, '0')}/${String(record.date.getDate()).padStart(2, '0')}`;
+        const clockInStr = `${String(record.clockIn.getHours()).padStart(2, '0')}:${String(record.clockIn.getMinutes()).padStart(2, '0')}`;
+        const clockOutStr = `${String(record.clockOut.getHours()).padStart(2, '0')}:${String(record.clockOut.getMinutes()).padStart(2, '0')}`;
+        
+        doc.text(dateStr, 50, y);
+        doc.text(clockInStr, 120, y);
+        doc.text(clockOutStr, 200, y);
+        doc.text(record.workTime, 280, y);
+        doc.text(record.location, 360, y);
         y += 20;
 
         // ページが足りなくなったら新しいページを追加
@@ -426,8 +438,8 @@ async function generatePDFMultiUser(
       const totalHours = Math.floor(totalMinutes / 60);
       const totalMins = Math.floor(totalMinutes % 60);
       doc.fontSize(10).font('Helvetica-Bold');
-      doc.text('合計', 50, y);
-      doc.text(`${totalHours}:${String(totalMins).padStart(2, '0')}`, 240, y);
+      doc.text('Total', 50, y);
+      doc.text(`${totalHours}:${String(totalMins).padStart(2, '0')}`, 280, y);
 
       // 次のユーザーのために改ページ
       if (allRecords.indexOf(userRecord) < allRecords.length - 1) {
@@ -446,47 +458,58 @@ async function generatePDFMultiUser(
 
 async function generatePDF(userName: string, periodLabel: string, records: TimeCardRecord[]): Promise<NextResponse> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50 });
+    const doc = new PDFDocument({ 
+      margin: 50,
+      bufferPages: true,
+    });
     const chunks: Buffer[] = [];
 
     doc.on('data', (chunk) => chunks.push(chunk));
     doc.on('end', () => {
       const buffer = Buffer.concat(chunks);
+      const fileName = `timecard_${Date.now()}.pdf`;
       resolve(
         new NextResponse(buffer, {
           headers: {
             'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="打刻履歴_${periodLabel.replace(/\s/g, '_')}.pdf"`,
+            'Content-Disposition': `attachment; filename="${fileName}"`,
           },
         })
       );
     });
-    doc.on('error', reject);
+    doc.on('error', (err) => {
+      console.error('PDF generation error:', err);
+      reject(err);
+    });
 
-    // タイトル
-    doc.fontSize(16).font('Helvetica-Bold').text(`${userName} - 打刻履歴`, { align: 'center' });
-    doc.fontSize(12).font('Helvetica').text(`期間: ${periodLabel}`, { align: 'center' });
+    // タイトル（ASCII文字のみ）
+    doc.fontSize(16).font('Helvetica-Bold').text(`Timecard Report - ${userName}`, { align: 'center' });
+    doc.fontSize(12).font('Helvetica').text(`Period: ${periodLabel}`, { align: 'center' });
     doc.moveDown();
 
-    // テーブルヘッダー
+    // テーブルヘッダー（ASCII文字のみ）
     const tableTop = doc.y;
     doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('日付', 50, tableTop);
-    doc.text('出勤', 120, tableTop);
-    doc.text('退勤', 180, tableTop);
-    doc.text('勤務時間', 240, tableTop);
-    doc.text('場所', 310, tableTop);
+    doc.text('Date', 50, tableTop);
+    doc.text('Clock In', 120, tableTop);
+    doc.text('Clock Out', 200, tableTop);
+    doc.text('Work Time', 280, tableTop);
+    doc.text('Location', 360, tableTop);
 
     // データ行
     let y = tableTop + 20;
     doc.font('Helvetica');
     records.forEach((record) => {
       doc.fontSize(9);
-      doc.text(record.date.toLocaleDateString('ja-JP'), 50, y);
-      doc.text(record.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }), 120, y);
-      doc.text(record.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }), 180, y);
-      doc.text(record.workTime, 240, y);
-      doc.text(record.location, 310, y);
+      const dateStr = `${record.date.getFullYear()}/${String(record.date.getMonth() + 1).padStart(2, '0')}/${String(record.date.getDate()).padStart(2, '0')}`;
+      const clockInStr = `${String(record.clockIn.getHours()).padStart(2, '0')}:${String(record.clockIn.getMinutes()).padStart(2, '0')}`;
+      const clockOutStr = `${String(record.clockOut.getHours()).padStart(2, '0')}:${String(record.clockOut.getMinutes()).padStart(2, '0')}`;
+      
+      doc.text(dateStr, 50, y);
+      doc.text(clockInStr, 120, y);
+      doc.text(clockOutStr, 200, y);
+      doc.text(record.workTime, 280, y);
+      doc.text(record.location, 360, y);
       y += 20;
 
       // ページ分割
@@ -501,8 +524,8 @@ async function generatePDF(userName: string, periodLabel: string, records: TimeC
     const totalHours = Math.floor(totalMinutes / 60);
     const totalMins = Math.floor(totalMinutes % 60);
     doc.font('Helvetica-Bold');
-    doc.text('合計', 50, y);
-    doc.text(`${totalHours}:${String(totalMins).padStart(2, '0')}`, 240, y);
+    doc.text('Total', 50, y);
+    doc.text(`${totalHours}:${String(totalMins).padStart(2, '0')}`, 280, y);
 
     doc.end();
   });
