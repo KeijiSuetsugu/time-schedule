@@ -37,6 +37,17 @@ const REASON_OPTIONS = [
   'その他',
 ];
 
+// 日時を日本時間でフォーマット（タイムゾーン変換なし）
+const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}/${month}/${day} ${hours}:${minutes}`;
+};
+
 export default function LeaveRequestPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -420,13 +431,13 @@ export default function LeaveRequestPage() {
                   </div>
                   <p className="text-sm text-gray-600 mb-1">理由: {request.reason}</p>
                   <p className="text-sm text-gray-600 mb-1">
-                    期間: {new Date(request.startDate).toLocaleString('ja-JP')} 〜 {new Date(request.endDate).toLocaleString('ja-JP')}
+                    期間: {formatDateTime(request.startDate)} 〜 {formatDateTime(request.endDate)}
                   </p>
                   <p className="text-sm text-gray-600">
                     {request.days}日間（{request.hours}時間）
                   </p>
                   <p className="text-xs text-gray-400 mt-2">
-                    申請日: {new Date(request.createdAt).toLocaleString('ja-JP')}
+                    申請日: {formatDateTime(request.createdAt)}
                   </p>
                 </div>
               ))}

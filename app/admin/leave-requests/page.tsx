@@ -30,6 +30,17 @@ interface LeaveRequest {
   createdAt: string;
 }
 
+// 日時を日本時間でフォーマット（タイムゾーン変換なし）
+const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}/${month}/${day} ${hours}:${minutes}`;
+};
+
 export default function AdminLeaveRequestsPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -259,7 +270,7 @@ export default function AdminLeaveRequestsPage() {
                     <div className="text-sm">
                       <span className="text-gray-600">期間:</span>
                       <span className="ml-2">
-                        {new Date(request.startDate).toLocaleString('ja-JP')} 〜 {new Date(request.endDate).toLocaleString('ja-JP')}
+                        {formatDateTime(request.startDate)} 〜 {formatDateTime(request.endDate)}
                       </span>
                     </div>
                     <div className="text-sm">
@@ -272,7 +283,7 @@ export default function AdminLeaveRequestsPage() {
 
                   {/* 申請日時 */}
                   <p className="text-xs text-gray-400 mb-3">
-                    申請日: {new Date(request.createdAt).toLocaleString('ja-JP')}
+                    申請日: {formatDateTime(request.createdAt)}
                   </p>
 
                   {/* 承認待ちの場合のアクション */}
@@ -328,7 +339,7 @@ export default function AdminLeaveRequestsPage() {
                   {request.status !== 'pending' && request.reviewedAt && (
                     <div className="border-t pt-3 text-sm text-gray-600">
                       <p>
-                        {request.status === 'approved' ? '承認' : '却下'}日時: {new Date(request.reviewedAt).toLocaleString('ja-JP')}
+                        {request.status === 'approved' ? '承認' : '却下'}日時: {formatDateTime(request.reviewedAt)}
                       </p>
                       {request.reviewComment && (
                         <p className="mt-1">
