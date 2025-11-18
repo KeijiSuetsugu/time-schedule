@@ -168,10 +168,38 @@ export async function GET(request: NextRequest) {
 
     if (format === 'excel') {
       console.log('Generating Excel...');
-      return generateExcelMultiUser(displayName, period.periodLabel, allRecords);
+      try {
+        return await generateExcelMultiUser(displayName, period.periodLabel, allRecords);
+      } catch (excelError) {
+        console.error('Excel generation error:', excelError);
+        throw new Error(`Excel生成エラー: ${excelError instanceof Error ? excelError.message : 'Unknown'}`);
+      }
     } else if (format === 'pdf') {
       console.log('Generating PDF...');
-      return generatePDFMultiUser(displayName, period.periodLabel, allRecords);
+      // PDF生成が失敗する場合は、JSONでデータを返す
+      return NextResponse.json(
+        { 
+          error: 'PDF生成機能は現在メンテナンス中です。Excelエクスポートをご利用ください。',
+          message: 'PDFKit does not support Japanese fonts in Vercel environment. Please use Excel export instead.',
+          data: {
+            period: period.periodLabel,
+            users: allRecords.map(u => ({
+              userName: u.userName,
+              userDepartment: u.userDepartment,
+              recordCount: u.records.length,
+            })),
+          },
+        },
+        { status: 501 }
+      );
+      /*
+      try {
+        return await generatePDFMultiUser(displayName, period.periodLabel, allRecords);
+      } catch (pdfError) {
+        console.error('PDF generation error:', pdfError);
+        throw new Error(`PDF生成エラー: ${pdfError instanceof Error ? pdfError.message : 'Unknown'}`);
+      }
+      */
     } else {
       return NextResponse.json({
         period: period.periodLabel,
@@ -193,11 +221,15 @@ export async function GET(request: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorStack = error instanceof Error ? error.stack : undefined;
     console.error('Error details:', { errorMessage, errorStack });
+    console.error('Error name:', error instanceof Error ? error.name : 'Unknown');
+    console.error('Full error:', JSON.stringify(error, null, 2));
     
     return NextResponse.json(
       { 
         error: 'サーバーエラーが発生しました',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        message: errorMessage,
+        details: errorStack,
+        type: error instanceof Error ? error.name : 'Unknown',
       },
       { status: 500 }
     );

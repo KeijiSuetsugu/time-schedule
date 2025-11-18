@@ -248,7 +248,9 @@ export default function DashboardPage() {
         let errorMessage = 'エクスポートに失敗しました';
         try {
           const errorData = await response.json();
-          errorMessage = errorData.error || `サーバーエラー (${response.status})`;
+          errorMessage = errorData.error || errorData.message || `サーバーエラー (${response.status})`;
+          // 詳細なエラー情報をコンソールに出力
+          console.error('Export API error:', errorData);
         } catch {
           errorMessage = `サーバーエラー (${response.status})`;
         }
