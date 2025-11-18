@@ -19,7 +19,8 @@ export default function TimeCardRequestPage() {
   const [requestType, setRequestType] = useState<'clock_in' | 'clock_out'>('clock_in');
   const [requestedDate, setRequestedDate] = useState('');
   const [requestedTime, setRequestedTime] = useState('');
-  const [reason, setReason] = useState('');
+  const [selectedReason, setSelectedReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [myRequests, setMyRequests] = useState<TimeCardRequest[]>([]);
@@ -63,6 +64,14 @@ export default function TimeCardRequestPage() {
         return;
       }
 
+      // 理由を決定
+      const finalReason = selectedReason === 'その他' ? customReason : selectedReason;
+      if (!finalReason) {
+        setMessage('❌ 理由を選択または入力してください');
+        setLoading(false);
+        return;
+      }
+
       // 日付と時刻を結合してISO形式に変換
       const requestedDateTime = new Date(`${requestedDate}T${requestedTime}`);
 
@@ -75,7 +84,7 @@ export default function TimeCardRequestPage() {
         body: JSON.stringify({
           requestType,
           requestedTime: requestedDateTime.toISOString(),
-          reason,
+          reason: finalReason,
         }),
       });
 
@@ -83,7 +92,8 @@ export default function TimeCardRequestPage() {
 
       if (response.ok) {
         setMessage('✅ 打刻申請を送信しました');
-        setReason('');
+        setSelectedReason('');
+        setCustomReason('');
         setRequestedDate('');
         setRequestedTime('');
         loadMyRequests(); // 申請一覧を再読み込み
@@ -204,14 +214,26 @@ export default function TimeCardRequestPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 理由
               </label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
+              <select
+                value={selectedReason}
+                onChange={(e) => setSelectedReason(e.target.value)}
                 required
-                rows={4}
-                placeholder="打刻漏れの理由を入力してください"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
+              >
+                <option value="">選択してください</option>
+                <option value="打刻漏れのため">打刻漏れのため</option>
+                <option value="その他">その他</option>
+              </select>
+              {selectedReason === 'その他' && (
+                <textarea
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  required
+                  rows={4}
+                  placeholder="理由を入力してください"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              )}
             </div>
 
             <button
