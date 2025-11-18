@@ -190,14 +190,6 @@ export async function GET(request: NextRequest) {
         console.error('Excel generation error:', excelError);
         throw new Error(`Excel生成エラー: ${excelError instanceof Error ? excelError.message : 'Unknown'}`);
       }
-    } else if (format === 'csv') {
-      console.log('Generating CSV...');
-      try {
-        return generateCSVMultiUser(displayName, period.periodLabel, allRecords);
-      } catch (csvError) {
-        console.error('CSV generation error:', csvError);
-        throw new Error(`CSV生成エラー: ${csvError instanceof Error ? csvError.message : 'Unknown'}`);
-      }
     } else {
       return NextResponse.json({
         period: period.periodLabel,
@@ -399,68 +391,4 @@ async function generateExcel(userName: string, periodLabel: string, records: Tim
   });
 }
 
-function generateCSVMultiUser(
-  displayName: string,
-  periodLabel: string,
-  allRecords: Array<{ userName: string; userDepartment: string; records: TimeCardRecord[] }>
-): NextResponse {
-  console.log('generateCSVMultiUser called with:', { displayName, periodLabel, recordsCount: allRecords.length });
-  
-  // BOM付きUTF-8でExcelでの文字化けを防ぐ
-  let csv = '\uFEFF';
-  
-  // ヘッダー行
-  csv += '氏名,部署,日付,出勤時刻,退勤時刻,勤務時間,場所\n';
-
-  // 各ユーザーのデータを追加
-  for (const userRecord of allRecords) {
-    if (userRecord.records.length === 0) {
-      // データがない場合は、ユーザー名と部署だけ出力
-      csv += `${userRecord.userName},${userRecord.userDepartment},データなし,,,0:00,\n\n`;
-      continue;
-    }
-    
-    userRecord.records.forEach((record) => {
-      const dateStr = record.date.toLocaleDateString('ja-JP');
-      const clockInStr = record.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-      const clockOutStr = record.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-      
-      // CSVエスケープ処理（カンマや改行が含まれる場合にダブルクォートで囲む）
-      const escapeCsv = (value: string) => {
-        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-          return `"${value.replace(/"/g, '""')}"`;
-        }
-        return value;
-      };
-      
-      csv += `${escapeCsv(userRecord.userName)},`;
-      csv += `${escapeCsv(userRecord.userDepartment)},`;
-      csv += `${escapeCsv(dateStr)},`;
-      csv += `${escapeCsv(clockInStr)},`;
-      csv += `${escapeCsv(clockOutStr)},`;
-      csv += `${escapeCsv(record.workTime)},`;
-      csv += `${escapeCsv(record.location)}\n`;
-    });
-    
-    // 合計行を追加
-    const totalMinutes = userRecord.records.reduce((sum, r) => sum + r.workMinutes, 0);
-    const totalHours = Math.floor(totalMinutes / 60);
-    const totalMins = Math.floor(totalMinutes % 60);
-    csv += `${userRecord.userName},${userRecord.userDepartment},合計,,,${totalHours}:${String(totalMins).padStart(2, '0')},\n`;
-    
-    // 空行を追加（ユーザー間の区切り）
-    csv += '\n';
-  }
-
-  // ファイル名を生成
-  const fileName = `打刻履歴_${displayName}_${periodLabel}.csv`;
-  console.log('CSV file name:', fileName);
-
-  return new NextResponse(csv, {
-    headers: {
-      'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
-    },
-  });
-}
 

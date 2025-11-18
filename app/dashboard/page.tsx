@@ -220,7 +220,8 @@ export default function DashboardPage() {
     router.push('/');
   };
 
-  const handleExport = async (format: 'excel' | 'csv') => {
+  const handleExport = async () => {
+    const format = 'excel';
     setExporting(true);
     try {
       const token = localStorage.getItem('token');
@@ -281,13 +282,13 @@ export default function DashboardPage() {
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
-      a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || `打刻履歴.${format === 'excel' ? 'xlsx' : 'csv'}`;
+      a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || `打刻履歴.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(downloadUrl);
 
-      alert(`${format === 'excel' ? 'Excel' : 'CSV'}ファイルをダウンロードしました`);
+      alert('Excelファイルをダウンロードしました');
     } catch (error: any) {
       let errorMessage = 'エクスポートに失敗しました';
       if (error.message) {
@@ -531,14 +532,16 @@ export default function DashboardPage() {
           <div className="card">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">打刻履歴のエクスポート</h2>
             <p className="text-sm text-gray-600 mb-4">
-              部署または職員を選択して、月次または年間の打刻データをExcel/CSV形式でダウンロードできます。
+              部署または職員を選択して、月次または年間の打刻データをExcel形式でダウンロードできます。
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
               <p className="text-sm text-blue-800">
                 <strong>📋 エクスポート方法:</strong><br/>
                 • <strong>全職員</strong>: 部署も職員も選択せずにダウンロード<br/>
                 • <strong>特定の部署</strong>: 部署のみ選択してダウンロード<br/>
-                • <strong>特定の職員</strong>: 職員を選択してダウンロード
+                • <strong>特定の職員</strong>: 職員を選択してダウンロード<br/>
+                <br/>
+                ※ Excel形式（.xlsx）でダウンロードされます
               </p>
             </div>
 
@@ -642,43 +645,23 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleExport('excel')}
-                  disabled={exporting}
-                  className="flex-1 btn-primary flex items-center justify-center gap-2"
-                >
-                  {exporting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>処理中...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>📊</span>
-                      <span>Excelでダウンロード</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handleExport('csv')}
-                  disabled={exporting}
-                  className="flex-1 btn-primary flex items-center justify-center gap-2"
-                >
-                  {exporting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>処理中...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>📄</span>
-                      <span>CSVでダウンロード</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="w-full btn-primary flex items-center justify-center gap-2"
+              >
+                {exporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>処理中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📊</span>
+                    <span>Excelでダウンロード</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         )}
