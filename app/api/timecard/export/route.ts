@@ -107,13 +107,14 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('Target users:', targetUsers.length);
+    console.log('Target users list:', targetUsers.map(u => ({ name: u.name, department: u.department })));
     console.log('Period:', period);
 
     // 全ユーザーの打刻履歴を取得して処理
     const allRecords: Array<{ userName: string; userDepartment: string; records: TimeCardRecord[] }> = [];
 
     for (const targetUser of targetUsers) {
-      console.log('Processing user:', targetUser.name);
+      console.log('Processing user:', targetUser.name, 'Department:', targetUser.department);
       // 打刻履歴を取得
       const timeCards = await prisma.timeCard.findMany({
         where: {
@@ -154,12 +155,21 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // データがなくてもユーザー情報は追加
       allRecords.push({
         userName: targetUser.name,
         userDepartment: targetUser.department || '部署未設定',
         records,
       });
+      
+      console.log(`User ${targetUser.name} has ${records.length} records`);
     }
+
+    console.log('All records processed:', allRecords.length);
+
+    // データチェック：全ユーザーがデータ0件の場合も許可
+    const totalRecordsCount = allRecords.reduce((sum, r) => sum + r.records.length, 0);
+    console.log('Total timecard records:', totalRecordsCount);
 
     // 表示名を決定
     const displayName = department 
@@ -264,15 +274,20 @@ async function generateExcelMultiUser(
     };
 
     // データ行
-    userRecord.records.forEach((record) => {
-      worksheet.addRow([
-        record.date.toLocaleDateString('ja-JP'),
-        record.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
-        record.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
-        record.workTime,
-        record.location,
-      ]);
-    });
+    if (userRecord.records.length === 0) {
+      // データがない場合
+      worksheet.addRow(['データなし', '', '', '0:00', '']);
+    } else {
+      userRecord.records.forEach((record) => {
+        worksheet.addRow([
+          record.date.toLocaleDateString('ja-JP'),
+          record.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+          record.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+          record.workTime,
+          record.location,
+        ]);
+      });
+    }
 
     // 合計行
     const totalMinutes = userRecord.records.reduce((sum, r) => sum + r.workMinutes, 0);
@@ -390,6 +405,12 @@ function generateCSVMultiUser(
 
   // 各ユーザーのデータを追加
   for (const userRecord of allRecords) {
+    if (userRecord.records.length === 0) {
+      // データがない場合は、ユーザー名と部署だけ出力
+      csv += `${userRecord.userName},${userRecord.userDepartment},データなし,,,0:00,\n\n`;
+      continue;
+    }
+    
     userRecord.records.forEach((record) => {
       const dateStr = record.date.toLocaleDateString('ja-JP');
       const clockInStr = record.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
