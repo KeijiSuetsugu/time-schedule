@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { hashPassword, verifyPassword } from '@/lib/password';
-import { generateToken } from '@/lib/auth';
+import { generateToken, verifyToken } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/lib/rateLimit';
 
 // 動的レンダリングを強制
@@ -20,6 +20,44 @@ const registerSchema = z.object({
   name: z.string().min(1),
   department: z.string().min(1, '部署を選択してください'),
 });
+
+// GET: 現在のユーザー情報を取得
+export async function GET(request: NextRequest) {
+  try {
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json({ error: '無効なトークンです' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        department: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'ユーザーが見つかりません' }, { status: 404 });
+    }
+
+    return NextResponse.json({ user });
+  } catch (error) {
+    console.error('認証確認エラー:', error);
+    return NextResponse.json(
+      { error: 'サーバーエラーが発生しました' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: NextRequest) {
   // レート制限チェック（認証エンドポイントはより厳しく）
