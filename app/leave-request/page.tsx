@@ -361,30 +361,30 @@ export default function LeaveRequestPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ◯日間
+                  日間
                 </label>
                 <input
                   type="number"
-                  value={days}
-                  onChange={(e) => setDays(parseFloat(e.target.value) || 0)}
+                  value={days || ''}
+                  onChange={(e) => setDays(e.target.value ? parseFloat(e.target.value) : 0)}
                   step="0.5"
                   min="0"
-                  placeholder="0.5"
+                  placeholder="例: 1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ◯時間
+                  時間
                 </label>
                 <input
                   type="number"
-                  value={hours}
-                  onChange={(e) => setHours(parseFloat(e.target.value) || 0)}
+                  value={hours || ''}
+                  onChange={(e) => setHours(e.target.value ? parseFloat(e.target.value) : 0)}
                   step="0.5"
                   min="0"
-                  placeholder="8"
+                  placeholder="例: 8"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
