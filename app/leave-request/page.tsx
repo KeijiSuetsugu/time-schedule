@@ -26,6 +26,7 @@ interface LeaveRequest {
 }
 
 const REASON_OPTIONS = [
+  '私事のため',
   '体調不良',
   '家族の看護',
   '通院',
@@ -75,22 +76,7 @@ export default function LeaveRequestPage() {
     loadMyRequests(token);
   }, [router]);
 
-  // 日数・時間数の自動計算
-  useEffect(() => {
-    if (startDate && endDate && startTime && endTime) {
-      const start = new Date(`${startDate}T${startTime}`);
-      const end = new Date(`${endDate}T${endTime}`);
-      
-      if (end > start) {
-        const diffMs = end.getTime() - start.getTime();
-        const diffHours = diffMs / (1000 * 60 * 60);
-        const diffDays = diffHours / 24;
-        
-        setHours(Math.round(diffHours * 10) / 10);
-        setDays(Math.round(diffDays * 10) / 10);
-      }
-    }
-  }, [startDate, endDate, startTime, endTime]);
+  // 日数・時間数は手動入力
 
   const loadMyRequests = async (token: string) => {
     try {
@@ -371,32 +357,36 @@ export default function LeaveRequestPage() {
               </div>
             </div>
 
-            {/* 日数・時間数（自動計算） */}
+            {/* 日数・時間数（手動入力） */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  日数
+                  ◯日間
                 </label>
                 <input
                   type="number"
                   value={days}
-                  onChange={(e) => setDays(parseFloat(e.target.value))}
-                  step="0.1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                  readOnly
+                  onChange={(e) => setDays(parseFloat(e.target.value) || 0)}
+                  step="0.5"
+                  min="0"
+                  placeholder="0.5"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  時間数
+                  ◯時間
                 </label>
                 <input
                   type="number"
                   value={hours}
-                  onChange={(e) => setHours(parseFloat(e.target.value))}
-                  step="0.1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                  readOnly
+                  onChange={(e) => setHours(parseFloat(e.target.value) || 0)}
+                  step="0.5"
+                  min="0"
+                  placeholder="8"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
                 />
               </div>
             </div>
