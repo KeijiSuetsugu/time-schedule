@@ -28,6 +28,7 @@ export default function AdminTimeCardRequestsPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [reviewComment, setReviewComment] = useState<{ [key: string]: string }>({});
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
     checkAdminAndLoadRequests();
@@ -37,7 +38,9 @@ export default function AdminTimeCardRequestsPage() {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        router.push('/');
+        setError('ログインが必要です');
+        setLoading(false);
+        setTimeout(() => router.push('/'), 2000);
         return;
       }
 
@@ -48,21 +51,25 @@ export default function AdminTimeCardRequestsPage() {
       });
 
       if (!userResponse.ok) {
-        router.push('/');
+        setError('認証に失敗しました');
+        setLoading(false);
+        setTimeout(() => router.push('/'), 2000);
         return;
       }
 
       const userData = await userResponse.json();
       if (userData.user.role !== 'admin') {
-        alert('管理者権限が必要です');
-        router.push('/dashboard');
+        setError('管理者権限が必要です');
+        setLoading(false);
+        setTimeout(() => router.push('/dashboard'), 2000);
         return;
       }
 
       loadRequests();
     } catch (error) {
       console.error('認証エラー:', error);
-      router.push('/');
+      setError(`エラーが発生しました: ${error}`);
+      setLoading(false);
     }
   };
 
@@ -77,10 +84,15 @@ export default function AdminTimeCardRequestsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setRequests(data.requests);
+        setRequests(data.requests || []);
+        setError('');
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'サーバーエラー' }));
+        setError(`申請一覧の取得に失敗しました: ${errorData.error || response.statusText}`);
       }
     } catch (error) {
       console.error('申請一覧取得エラー:', error);
+      setError(`申請一覧の取得に失敗しました: ${error}`);
     } finally {
       setLoading(false);
     }
@@ -169,6 +181,38 @@ export default function AdminTimeCardRequestsPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-xl">読み込み中...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-md w-full">
+          <div className="text-center">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-red-600 mb-4">エラーが発生しました</h2>
+            <p className="text-gray-700 mb-6 whitespace-pre-line">{error}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setError('');
+                  setLoading(true);
+                  checkAdminAndLoadRequests();
+                }}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+              >
+                再試行
+              </button>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700"
+              >
+                ダッシュボードへ
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
