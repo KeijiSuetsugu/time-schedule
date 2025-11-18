@@ -512,8 +512,16 @@ export default function DashboardPage() {
           <div className="card">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">打刻履歴のエクスポート</h2>
             <p className="text-sm text-gray-600 mb-4">
-              職員を選択して、月次または年間の打刻データをExcel/PDF形式でダウンロードできます。
+              部署または職員を選択して、月次または年間の打刻データをExcel/CSV形式でダウンロードできます。
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-blue-800">
+                <strong>📋 エクスポート方法:</strong><br/>
+                • <strong>全職員</strong>: 部署も職員も選択せずにダウンロード<br/>
+                • <strong>特定の部署</strong>: 部署のみ選択してダウンロード<br/>
+                • <strong>特定の職員</strong>: 職員を選択してダウンロード
+              </p>
+            </div>
 
             <div className="space-y-4">
               {/* 部署選択 */}
@@ -550,7 +558,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">
-                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員（自分のデータ）'}
+                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
                   </option>
                   {employees
                     .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)

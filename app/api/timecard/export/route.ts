@@ -86,10 +86,17 @@ export async function GET(request: NextRequest) {
       targetUsers = await prisma.user.findMany({
         where: { department },
         select: { id: true, name: true, department: true },
+        orderBy: { name: 'asc' },
       });
     } else {
-      // どちらも指定されていない場合は、ログインユーザー自身
-      targetUsers = [{ id: userId, name: user.name, department: user.department }];
+      // どちらも指定されていない場合は、全ユーザー（管理者権限）
+      targetUsers = await prisma.user.findMany({
+        select: { id: true, name: true, department: true },
+        orderBy: [
+          { department: 'asc' },
+          { name: 'asc' },
+        ],
+      });
     }
 
     if (targetUsers.length === 0) {
