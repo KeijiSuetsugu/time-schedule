@@ -220,14 +220,23 @@ export async function GET(request: NextRequest) {
     const errorStack = error instanceof Error ? error.stack : undefined;
     console.error('Error details:', { errorMessage, errorStack });
     console.error('Error name:', error instanceof Error ? error.name : 'Unknown');
-    console.error('Full error:', JSON.stringify(error, null, 2));
+    
+    // より詳細なエラー情報を取得
+    let errorInfo = 'エラー情報なし';
+    try {
+      errorInfo = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
+      console.error('Full error:', errorInfo);
+    } catch (e) {
+      console.error('Failed to stringify error');
+    }
     
     return NextResponse.json(
       { 
         error: 'サーバーエラーが発生しました',
         message: errorMessage,
-        details: errorStack,
+        details: errorStack || errorInfo,
         type: error instanceof Error ? error.name : 'Unknown',
+        timestamp: new Date().toISOString(),
       },
       { status: 500 }
     );

@@ -246,13 +246,32 @@ export default function DashboardPage() {
 
       if (!response.ok) {
         let errorMessage = 'エクスポートに失敗しました';
+        let errorDetails = '';
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorData.message || `サーバーエラー (${response.status})`;
+          errorDetails = errorData.details || '';
           // 詳細なエラー情報をコンソールに出力
           console.error('Export API error:', errorData);
-        } catch {
+          console.error('Error details:', errorDetails);
+          
+          // エラーの詳細をアラートに表示
+          if (errorDetails) {
+            errorMessage += `\n\n詳細: ${errorDetails}`;
+          }
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
           errorMessage = `サーバーエラー (${response.status})`;
+          // レスポンステキストを取得
+          try {
+            const text = await response.text();
+            console.error('Response text:', text);
+            if (text) {
+              errorMessage += `\n\n${text.substring(0, 200)}`;
+            }
+          } catch {
+            // テキスト取得失敗
+          }
         }
         throw new Error(errorMessage);
       }
