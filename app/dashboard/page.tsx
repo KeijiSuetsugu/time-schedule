@@ -220,7 +220,7 @@ export default function DashboardPage() {
     router.push('/');
   };
 
-  const handleExport = async (format: 'excel' | 'markdown') => {
+  const handleExport = async (format: 'excel' | 'csv') => {
     setExporting(true);
     try {
       const token = localStorage.getItem('token');
@@ -262,13 +262,13 @@ export default function DashboardPage() {
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
-      a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || `打刻履歴.${format === 'excel' ? 'xlsx' : 'md'}`;
+      a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || `打刻履歴.${format === 'excel' ? 'xlsx' : 'csv'}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(downloadUrl);
 
-      alert(`${format === 'excel' ? 'Excel' : 'Markdown'}ファイルをダウンロードしました`);
+      alert(`${format === 'excel' ? 'Excel' : 'CSV'}ファイルをダウンロードしました`);
     } catch (error: any) {
       let errorMessage = 'エクスポートに失敗しました';
       if (error.message) {
@@ -635,7 +635,7 @@ export default function DashboardPage() {
                 </button>
 
                 <button
-                  onClick={() => handleExport('markdown')}
+                  onClick={() => handleExport('csv')}
                   disabled={exporting}
                   className="flex-1 btn-primary flex items-center justify-center gap-2"
                 >
@@ -646,8 +646,8 @@ export default function DashboardPage() {
                     </>
                   ) : (
                     <>
-                      <span>📝</span>
-                      <span>Markdownでダウンロード</span>
+                      <span>📄</span>
+                      <span>CSVでダウンロード</span>
                     </>
                   )}
                 </button>
