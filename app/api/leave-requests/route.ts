@@ -48,6 +48,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createLeaveRequestSchema.parse(body);
 
+    // 日本時間として入力された日時をそのままUTCとして保存
+    // フロントエンドから "2024-11-19T08:25" の形式で送られてくる
+    // これを日本時間として扱うため、そのままISO文字列に変換
+    const startDateStr = validatedData.startDate.includes('Z') 
+      ? validatedData.startDate 
+      : `${validatedData.startDate}:00.000Z`;
+    const endDateStr = validatedData.endDate.includes('Z') 
+      ? validatedData.endDate 
+      : `${validatedData.endDate}:00.000Z`;
+
     const leaveRequest = await prisma.leaveRequest.create({
       data: {
         userId: user.userId,
@@ -56,8 +66,8 @@ export async function POST(request: NextRequest) {
         department: validatedData.department,
         employeeName: validatedData.employeeName,
         reason: validatedData.reason,
-        startDate: new Date(validatedData.startDate),
-        endDate: new Date(validatedData.endDate),
+        startDate: startDateStr,
+        endDate: endDateStr,
         days: validatedData.days,
         hours: validatedData.hours,
         status: 'pending',

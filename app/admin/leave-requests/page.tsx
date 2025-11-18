@@ -30,14 +30,16 @@ interface LeaveRequest {
   createdAt: string;
 }
 
-// 日時を日本時間でフォーマット（タイムゾーン変換なし）
+// 日時を日本時間でフォーマット（UTCとして保存された日時を日本時間として表示）
 const formatDateTime = (dateString: string) => {
+  // UTCとして保存された日時を取得
   const date = new Date(dateString);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
+  // UTC時刻を取得して日本時間として表示
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
   return `${year}/${month}/${day} ${hours}:${minutes}`;
 };
 
