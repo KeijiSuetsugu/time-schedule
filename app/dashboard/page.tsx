@@ -460,20 +460,49 @@ export default function DashboardPage() {
           </button>
         </div>
 
+        {/* 有給申請 */}
+        <div className="card">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">有給申請</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            休暇や欠勤の申請を行います。管理者が承認します。
+          </p>
+          <button
+            onClick={() => router.push('/leave-request')}
+            className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+          >
+            有給を申請する
+          </button>
+        </div>
+
         {/* 管理者用：申請管理 */}
         {user?.role === 'admin' && (
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">打刻申請管理</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              職員からの打刻漏れ申請を確認・承認できます。
-            </p>
-            <button
-              onClick={() => router.push('/admin/timecard-requests')}
-              className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-            >
-              申請を管理する
+          <>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">打刻申請管理</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                職員からの打刻漏れ申請を確認・承認できます。
+              </p>
+              <button
+                onClick={() => router.push('/admin/timecard-requests')}
+                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+              >
+                申請を管理する
             </button>
           </div>
+
+          <div className="card">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">有給申請管理</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              職員からの有給申請を確認・承認できます。
+            </p>
+            <button
+              onClick={() => router.push('/admin/leave-requests')}
+              className="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700 transition-colors"
+            >
+              有給申請を管理する
+            </button>
+          </div>
+          </>
         )}
 
         {/* エクスポート */}

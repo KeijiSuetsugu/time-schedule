@@ -21,6 +21,7 @@ model User {
   updatedAt DateTime @updatedAt
   timecards TimeCard[]
   timeCardRequests TimeCardRequest[]
+  leaveRequests LeaveRequest[]
 }
 
 model TimeCard {
@@ -72,5 +73,31 @@ model TimeCardRequest {
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+}
+
+model LeaveRequest {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveType       String   // "年次", "病気", "特別"
+  absenceType     String   // "休暇", "欠勤"
+  department      String   // 所属部署
+  employeeName    String   // 氏名
+  reason          String   // 理由
+  startDate       DateTime // 開始日時
+  endDate         DateTime // 終了日時
+  days            Float    // 日数
+  hours           Float    // 時間数
+  status          String   @default("pending") // "pending", "approved", "rejected"
+  reviewedBy      String?  // 承認/却下した管理者のID
+  reviewedAt      DateTime? // 承認/却下日時
+  reviewComment   String?  // 管理者のコメント
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([startDate])
 }
 
