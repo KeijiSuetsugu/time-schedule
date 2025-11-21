@@ -324,10 +324,17 @@ async function generateExcelMultiUser(
       worksheet.addRow(['データなし', '', '', '0:00', '', '', '']);
     } else {
       userRecord.records.forEach((record) => {
+        // 日本時間として表示（UTCからJST +9時間）
+        const clockInJST = new Date(record.clockIn.getTime() + 9 * 60 * 60 * 1000);
+        const clockOutJST = new Date(record.clockOut.getTime() + 9 * 60 * 60 * 1000);
+        
+        const clockInTime = `${String(clockInJST.getUTCHours()).padStart(2, '0')}:${String(clockInJST.getUTCMinutes()).padStart(2, '0')}`;
+        const clockOutTime = `${String(clockOutJST.getUTCHours()).padStart(2, '0')}:${String(clockOutJST.getUTCMinutes()).padStart(2, '0')}`;
+        
         worksheet.addRow([
-          record.date.toLocaleDateString('ja-JP'),
-          record.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
-          record.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+          record.date.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' }),
+          clockInTime,
+          clockOutTime,
           record.workTime,
           record.overtimeStart || '',
           record.overtimeEnd || '',
