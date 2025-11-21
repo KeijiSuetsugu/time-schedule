@@ -14,7 +14,9 @@ interface TimeCardRecord {
   clockOut: Date;
   workTime: string;
   workMinutes: number;
-  location: string;
+  overtimeStart?: string;
+  overtimeEnd?: string;
+  overtimeHours?: string;
 }
 
 // 打刻履歴のエクスポート（Excel/PDF）- 管理者のみ
@@ -130,6 +132,19 @@ export async function GET(request: NextRequest) {
         },
       });
 
+      // 時間外業務届を取得（承認済みのみ）
+      const overtimeRequests = await prisma.overtimeRequest.findMany({
+        where: {
+          userId: targetUser.id,
+          status: 'approved',
+          overtimeDate: {
+            gte: period.startDate,
+            lte: period.endDate,
+          },
+        },
+        orderBy: { overtimeDate: 'asc' },
+      });
+
       // 出勤・退勤をペアにして勤務時間を計算
       const records: TimeCardRecord[] = [];
       let clockIn: typeof timeCards[0] | null = null;
@@ -142,13 +157,40 @@ export async function GET(request: NextRequest) {
           const hours = Math.floor(workTime / 60);
           const minutes = Math.floor(workTime % 60);
 
+          // この日付の時間外業務を探す
+          const clockInDate = new Date(clockIn.timestamp);
+          clockInDate.setHours(0, 0, 0, 0);
+          const overtimeForDay = overtimeRequests.find(ot => {
+            const otDate = new Date(ot.overtimeDate);
+            otDate.setHours(0, 0, 0, 0);
+            return otDate.getTime() === clockInDate.getTime();
+          });
+
+          let overtimeStart: string | undefined;
+          let overtimeEnd: string | undefined;
+          let overtimeHours: string | undefined;
+
+          if (overtimeForDay) {
+            const startDate = new Date(overtimeForDay.startTime);
+            const endDate = new Date(overtimeForDay.endTime);
+            const overtimeMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
+            const otHours = Math.floor(overtimeMinutes / 60);
+            const otMinutes = Math.floor(overtimeMinutes % 60);
+
+            overtimeStart = `${String(startDate.getUTCHours()).padStart(2, '0')}:${String(startDate.getUTCMinutes()).padStart(2, '0')}`;
+            overtimeEnd = `${String(endDate.getUTCHours()).padStart(2, '0')}:${String(endDate.getUTCMinutes()).padStart(2, '0')}`;
+            overtimeHours = `${otHours}:${String(otMinutes).padStart(2, '0')}`;
+          }
+
           records.push({
             date: clockIn.timestamp,
             clockIn: clockIn.timestamp,
             clockOut: timeCard.timestamp,
             workTime: `${hours}:${String(minutes).padStart(2, '0')}`,
             workMinutes: workTime,
-            location: clockIn.location?.name || '-',
+            overtimeStart,
+            overtimeEnd,
+            overtimeHours,
           });
 
           clockIn = null;
@@ -248,7 +290,7 @@ async function generateExcelMultiUser(
 
   // タイトル行を追加
   worksheet.addRow([`${displayName} - 打刻履歴 (${periodLabel})`]);
-  worksheet.mergeCells(1, 1, 1, 6);
+  worksheet.mergeCells(1, 1, 1, 8);
   worksheet.getRow(1).font = { bold: true, size: 14 };
   worksheet.getRow(1).alignment = { horizontal: 'center', vertical: 'middle' };
   worksheet.addRow([]); // 空行
@@ -258,7 +300,7 @@ async function generateExcelMultiUser(
     // ユーザー名と部署
     const userRow = worksheet.addRow([`${userRecord.userName} (${userRecord.userDepartment})`]);
     userRow.font = { bold: true, size: 12 };
-    worksheet.mergeCells(userRow.number, 1, userRow.number, 6);
+    worksheet.mergeCells(userRow.number, 1, userRow.number, 8);
     userRow.fill = {
       type: 'pattern',
       pattern: 'solid',
@@ -266,7 +308,7 @@ async function generateExcelMultiUser(
     };
 
     // ヘッダー行
-    const headerRow = worksheet.addRow(['日付', '出勤時刻', '退勤時刻', '勤務時間', '場所']);
+    const headerRow = worksheet.addRow(['日付', '出勤時刻', '退勤時刻', '勤務時間', '時間外開始', '時間外終了', '時間外総時間']);
     headerRow.font = { bold: true };
     headerRow.fill = {
       type: 'pattern',
@@ -277,7 +319,7 @@ async function generateExcelMultiUser(
     // データ行
     if (userRecord.records.length === 0) {
       // データがない場合
-      worksheet.addRow(['データなし', '', '', '0:00', '']);
+      worksheet.addRow(['データなし', '', '', '0:00', '', '', '']);
     } else {
       userRecord.records.forEach((record) => {
         worksheet.addRow([
@@ -285,7 +327,9 @@ async function generateExcelMultiUser(
           record.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
           record.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
           record.workTime,
-          record.location,
+          record.overtimeStart || '',
+          record.overtimeEnd || '',
+          record.overtimeHours || '',
         ]);
       });
     }
@@ -294,7 +338,7 @@ async function generateExcelMultiUser(
     const totalMinutes = userRecord.records.reduce((sum, r) => sum + r.workMinutes, 0);
     const totalHours = Math.floor(totalMinutes / 60);
     const totalMins = Math.floor(totalMinutes % 60);
-    const totalRow = worksheet.addRow(['合計', '', '', `${totalHours}:${String(totalMins).padStart(2, '0')}`, '']);
+    const totalRow = worksheet.addRow(['合計', '', '', `${totalHours}:${String(totalMins).padStart(2, '0')}`, '', '', '']);
     totalRow.font = { bold: true };
 
     // 空行を追加
@@ -303,11 +347,13 @@ async function generateExcelMultiUser(
 
   // 列幅を設定
   worksheet.columns = [
-    { width: 12 },
-    { width: 12 },
-    { width: 12 },
-    { width: 12 },
-    { width: 15 },
+    { width: 12 },  // 日付
+    { width: 12 },  // 出勤時刻
+    { width: 12 },  // 退勤時刻
+    { width: 12 },  // 勤務時間
+    { width: 14 },  // 時間外開始
+    { width: 14 },  // 時間外終了
+    { width: 14 },  // 時間外総時間
   ];
 
     // バッファに書き込み
