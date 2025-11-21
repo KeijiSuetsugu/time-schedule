@@ -22,6 +22,7 @@ model User {
   timecards TimeCard[]
   timeCardRequests TimeCardRequest[]
   leaveRequests LeaveRequest[]
+  overtimeRequests OvertimeRequest[]
 }
 
 model TimeCard {
@@ -99,5 +100,28 @@ model LeaveRequest {
   @@index([status])
   @@index([createdAt])
   @@index([startDate])
+}
+
+model OvertimeRequest {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department      String   // 所属部署
+  employeeName    String   // 氏名
+  content         String   // 時間外の内容
+  overtimeDate    DateTime // 時間外業務の日付
+  startTime       DateTime // 開始時刻
+  endTime         DateTime // 終了時刻
+  status          String   @default("pending") // "pending", "approved", "rejected"
+  reviewedBy      String?  // 承認/却下した管理者のID
+  reviewedAt      DateTime? // 承認/却下日時
+  reviewComment   String?  // 管理者のコメント
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([overtimeDate])
 }
 

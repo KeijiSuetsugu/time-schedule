@@ -496,6 +496,20 @@ export default function DashboardPage() {
           </button>
         </div>
 
+        {/* 時間外業務届 */}
+        <div className="card">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">時間外業務届</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            時間外業務の申請を行います。管理者が承認します。
+          </p>
+          <button
+            onClick={() => router.push('/overtime-request')}
+            className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+          >
+            時間外業務届を申請する
+          </button>
+        </div>
+
         {/* 管理者用：申請管理 */}
         {user?.role === 'admin' && (
           <>
@@ -522,6 +536,19 @@ export default function DashboardPage() {
               className="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700 transition-colors"
             >
               有給申請を管理する
+            </button>
+          </div>
+
+          <div className="card">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">時間外業務届管理</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              職員からの時間外業務届を確認・承認できます。
+            </p>
+            <button
+              onClick={() => router.push('/admin/overtime-requests')}
+              className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+            >
+              時間外業務届を管理する
             </button>
           </div>
           </>
