@@ -141,15 +141,12 @@ export default function OvertimeRequestPage() {
     }
   };
 
-  // 日時を日本時間でフォーマット（UTCとして保存された日時を日本時間として表示）
-  const formatDateTime = (dateString: string) => {
+  // 時間のみをフォーマット（UTCとして保存された日時から時間部分を取得）
+  const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
     const hours = String(date.getUTCHours()).padStart(2, '0');
     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    return `${year}/${month}/${day} ${hours}:${minutes}`;
+    return `${hours}:${minutes}`;
   };
 
   // 日付のみをフォーマット
@@ -159,6 +156,17 @@ export default function OvertimeRequestPage() {
     const month = String(date.getUTCMonth() + 1).padStart(2, '0');
     const day = String(date.getUTCDate()).padStart(2, '0');
     return `${year}/${month}/${day}`;
+  };
+
+  // 日時を日本時間でフォーマット
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    return `${year}/${month}/${day} ${hours}:${minutes}`;
   };
 
   // ステータスの表示
@@ -265,7 +273,7 @@ export default function OvertimeRequestPage() {
                   開始時刻 <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="datetime-local"
+                  type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                   required
@@ -278,7 +286,7 @@ export default function OvertimeRequestPage() {
                   終了時刻 <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="datetime-local"
+                  type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                   required
@@ -343,7 +351,7 @@ export default function OvertimeRequestPage() {
                         <span className="font-medium">日付:</span> {formatDate(request.overtimeDate)}
                       </p>
                       <p className="text-gray-700">
-                        <span className="font-medium">時間:</span> {formatDateTime(request.startTime)} 〜 {formatDateTime(request.endTime)}
+                        <span className="font-medium">時間:</span> {formatTime(request.startTime)} 〜 {formatTime(request.endTime)}
                       </p>
                       <p className="text-gray-700">
                         <span className="font-medium">内容:</span> {request.content}

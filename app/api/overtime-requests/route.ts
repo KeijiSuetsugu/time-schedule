@@ -9,8 +9,8 @@ const createOvertimeRequestSchema = z.object({
   employeeName: z.string().min(1, '氏名を入力してください'),
   content: z.string().min(1, '時間外の内容を入力してください'),
   overtimeDate: z.string(), // YYYY-MM-DD形式
-  startTime: z.string(), // YYYY-MM-DDTHH:mm形式
-  endTime: z.string(), // YYYY-MM-DDTHH:mm形式
+  startTime: z.string(), // HH:mm形式
+  endTime: z.string(), // HH:mm形式
 });
 
 const reviewRequestSchema = z.object({
@@ -92,16 +92,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createOvertimeRequestSchema.parse(body);
 
-    // 日本時間として入力された日時をそのままUTCとして保存
-    const startTimeStr = validatedData.startTime.includes('Z') 
-      ? validatedData.startTime 
-      : `${validatedData.startTime}:00.000Z`;
-    const endTimeStr = validatedData.endTime.includes('Z') 
-      ? validatedData.endTime 
-      : `${validatedData.endTime}:00.000Z`;
+    // 日付と時間を組み合わせて日時を作成（日本時間としてUTCに保存）
     const overtimeDateStr = validatedData.overtimeDate.includes('T')
       ? validatedData.overtimeDate
       : `${validatedData.overtimeDate}T00:00:00.000Z`;
+    
+    // 時間のみの入力（HH:mm）を日付と組み合わせる
+    const startTimeStr = `${validatedData.overtimeDate}T${validatedData.startTime}:00.000Z`;
+    const endTimeStr = `${validatedData.overtimeDate}T${validatedData.endTime}:00.000Z`;
 
     const overtimeRequest = await prisma.overtimeRequest.create({
       data: {

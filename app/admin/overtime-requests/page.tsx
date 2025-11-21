@@ -159,15 +159,12 @@ export default function AdminOvertimeRequestsPage() {
     }
   };
 
-  // 日時を日本時間でフォーマット
-  const formatDateTime = (dateString: string) => {
+  // 時間のみをフォーマット（UTCとして保存された日時から時間部分を取得）
+  const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
     const hours = String(date.getUTCHours()).padStart(2, '0');
     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    return `${year}/${month}/${day} ${hours}:${minutes}`;
+    return `${hours}:${minutes}`;
   };
 
   // 日付のみをフォーマット
@@ -177,6 +174,17 @@ export default function AdminOvertimeRequestsPage() {
     const month = String(date.getUTCMonth() + 1).padStart(2, '0');
     const day = String(date.getUTCDate()).padStart(2, '0');
     return `${year}/${month}/${day}`;
+  };
+
+  // 日時を日本時間でフォーマット
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    return `${year}/${month}/${day} ${hours}:${minutes}`;
   };
 
   // ステータスバッジ
@@ -329,7 +337,7 @@ export default function AdminOvertimeRequestsPage() {
                     <div className="bg-gray-50 p-3 rounded">
                       <p className="text-xs text-gray-500 mb-1">時間</p>
                       <p className="font-medium">
-                        {formatDateTime(request.startTime)} 〜 {formatDateTime(request.endTime)}
+                        {formatTime(request.startTime)} 〜 {formatTime(request.endTime)}
                       </p>
                     </div>
                   </div>
