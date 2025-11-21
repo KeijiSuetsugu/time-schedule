@@ -243,7 +243,9 @@ export async function GET(request: NextRequest) {
             clockIn: r.clockIn.toISOString(),
             clockOut: r.clockOut.toISOString(),
             workTime: r.workTime,
-            location: r.location,
+            overtimeStart: r.overtimeStart,
+            overtimeEnd: r.overtimeEnd,
+            overtimeHours: r.overtimeHours,
           })),
         })),
       });
