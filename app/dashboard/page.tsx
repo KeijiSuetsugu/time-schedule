@@ -520,7 +520,7 @@ export default function DashboardPage() {
               </p>
               <button
                 onClick={() => router.push('/admin/timecard-requests')}
-                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-cyan-500/50"
               >
                 申請を管理する
             </button>
@@ -533,7 +533,7 @@ export default function DashboardPage() {
             </p>
             <button
               onClick={() => router.push('/admin/leave-requests')}
-              className="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700 transition-colors"
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-pink-500/50"
             >
               有給申請を管理する
             </button>
@@ -546,7 +546,7 @@ export default function DashboardPage() {
             </p>
             <button
               onClick={() => router.push('/admin/overtime-requests')}
-              className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+              className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-purple-500/50"
             >
               時間外業務届を管理する
             </button>
