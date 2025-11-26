@@ -71,6 +71,9 @@ export default function LeaveRequestPage() {
 
   // 過去の申請履歴
   const [myRequests, setMyRequests] = useState<LeaveRequest[]>([]);
+  
+  // 今日の日付を取得（YYYY-MM-DD形式）
+  const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -324,6 +327,7 @@ export default function LeaveRequestPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
+                  min={today}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
@@ -352,6 +356,7 @@ export default function LeaveRequestPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
+                  min={today}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
