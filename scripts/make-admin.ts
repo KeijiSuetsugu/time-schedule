@@ -1,4 +1,45 @@
-import { prisma } from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
+import { config } from 'dotenv';
+
+// 環境変数を読み込む
+config();
+
+// 環境変数に応じてデータベースURLを設定（コマンドライン引数からも取得可能）
+const databaseUrl = 
+  process.argv.find(arg => arg.startsWith('DATABASE_URL='))?.split('=')[1] ||
+  process.argv.find(arg => arg.startsWith('PRISMA_DATABASE_URL='))?.split('=')[1] ||
+  process.env.PRISMA_DATABASE_URL || 
+  process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('❌ エラー: データベースURLが設定されていません');
+  console.error('\n使用方法:');
+  console.error('  1. 環境変数として設定:');
+  console.error('     export DATABASE_URL="postgresql://user:password@host:5432/database"');
+  console.error('     npx tsx scripts/make-admin.ts onepeace0710@gmail.com');
+  console.error('\n  2. コマンドライン引数として指定:');
+  console.error('     npx tsx scripts/make-admin.ts onepeace0710@gmail.com DATABASE_URL="postgresql://..."');
+  console.error('\n  3. Vercelの環境変数を確認して設定:');
+  console.error('     Vercelダッシュボード → Settings → Environment Variables から PRISMA_DATABASE_URL を取得');
+  process.exit(1);
+}
+
+if (!databaseUrl.startsWith('postgresql://') && !databaseUrl.startsWith('postgres://')) {
+  console.error('❌ エラー: データベースURLはPostgreSQL形式である必要があります');
+  console.error(`現在のURL: ${databaseUrl.substring(0, 50)}...`);
+  console.error('\nVercelの環境変数から PRISMA_DATABASE_URL を取得して設定してください:');
+  console.error('  export PRISMA_DATABASE_URL="postgresql://..."');
+  console.error('  npx tsx scripts/make-admin.ts onepeace0710@gmail.com');
+  process.exit(1);
+}
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: databaseUrl,
+    },
+  },
+});
 
 /**
  * ユーザーを管理者にするスクリプト
@@ -23,7 +64,9 @@ async function makeAdmin(email: string) {
     } else {
       console.error('❌ エラー:', error.message);
     }
-    process.exit(1);
+    throw error;
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
