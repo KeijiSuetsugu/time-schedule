@@ -19,9 +19,11 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
+// postgres:// も postgresql:// も受け入れる
 if (!databaseUrl.startsWith('postgresql://') && !databaseUrl.startsWith('postgres://')) {
   console.error('❌ エラー: データベースURLはPostgreSQL形式である必要があります');
   console.error(`現在のURL: ${databaseUrl.substring(0, 50)}...`);
+  console.error('\npostgresql:// または postgres:// で始まるURLが必要です');
   process.exit(1);
 }
 
