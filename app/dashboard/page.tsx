@@ -514,6 +514,19 @@ export default function DashboardPage() {
         {user?.role === 'admin' && (
           <>
             <div className="card">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">👥 ユーザー管理</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                管理者権限の付与・削除を行えます。
+              </p>
+              <button
+                onClick={() => router.push('/admin/users')}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 transition-all shadow-lg hover:shadow-orange-500/50"
+              >
+                ユーザーを管理する
+              </button>
+            </div>
+
+            <div className="card">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">打刻申請管理</h2>
               <p className="text-sm text-gray-600 mb-4">
                 職員からの打刻漏れ申請を確認・承認できます。

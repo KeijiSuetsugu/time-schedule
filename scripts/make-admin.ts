@@ -77,8 +77,10 @@ const prisma = new PrismaClient({
  * ユーザーを管理者にするスクリプト
  * 
  * 使用方法:
- * 1. ターミナルで実行: npx tsx scripts/make-admin.ts <email>
- * 2. または、Node.jsで実行: node -r ts-node/register scripts/make-admin.ts <email>
+ * 1. 単一ユーザー: npx tsx scripts/make-admin.ts <email>
+ * 2. 複数ユーザー: npx tsx scripts/make-admin.ts <email1> <email2> <email3>
+ * 3. 管理者一覧表示: npx tsx scripts/make-admin.ts --list
+ * 4. 管理者権限削除: npx tsx scripts/make-admin.ts --remove <email>
  */
 
 async function makeAdmin(email: string) {
@@ -97,26 +99,137 @@ async function makeAdmin(email: string) {
       console.error('❌ エラー:', error.message);
     }
     throw error;
+  }
+}
+
+async function removeAdmin(email: string) {
+  try {
+    const user = await prisma.user.update({
+      where: { email },
+      data: { role: 'staff' },
+    });
+
+    console.log(`✅ ユーザー「${user.name}」(${user.email})の管理者権限を削除しました`);
+    return user;
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      console.error(`❌ エラー: メールアドレス「${email}」のユーザーが見つかりません`);
+    } else {
+      console.error('❌ エラー:', error.message);
+    }
+    throw error;
+  }
+}
+
+async function listAdmins() {
+  try {
+    const admins = await prisma.user.findMany({
+      where: { role: 'admin' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        department: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (admins.length === 0) {
+      console.log('📋 現在、管理者は登録されていません');
+      return;
+    }
+
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📋 管理者一覧');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    
+    admins.forEach((admin, index) => {
+      console.log(`${index + 1}. ${admin.name} (${admin.email})`);
+      console.log(`   部署: ${admin.department || '未設定'}`);
+      console.log(`   登録日: ${admin.createdAt.toLocaleDateString('ja-JP')}`);
+      console.log('');
+    });
+
+    console.log(`合計: ${admins.length}人の管理者\n`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+  } catch (error: any) {
+    console.error('❌ エラー:', error.message);
+    throw error;
+  }
+}
+
+async function main() {
+  try {
+    const args = process.argv.slice(2);
+
+    if (args.length === 0) {
+      console.error('使用方法:');
+      console.error('  管理者に設定:     npx tsx scripts/make-admin.ts <email> [email2] [email3] ...');
+      console.error('  管理者一覧表示:   npx tsx scripts/make-admin.ts --list');
+      console.error('  管理者権限削除:   npx tsx scripts/make-admin.ts --remove <email>');
+      console.error('\n例:');
+      console.error('  npx tsx scripts/make-admin.ts admin@example.com');
+      console.error('  npx tsx scripts/make-admin.ts user1@example.com user2@example.com');
+      console.error('  npx tsx scripts/make-admin.ts --list');
+      console.error('  npx tsx scripts/make-admin.ts --remove admin@example.com');
+      process.exit(1);
+    }
+
+    // 管理者一覧表示
+    if (args[0] === '--list' || args[0] === '-l') {
+      await listAdmins();
+      return;
+    }
+
+    // 管理者権限削除
+    if (args[0] === '--remove' || args[0] === '-r') {
+      if (!args[1]) {
+        console.error('❌ エラー: メールアドレスを指定してください');
+        console.error('使用方法: npx tsx scripts/make-admin.ts --remove <email>');
+        process.exit(1);
+      }
+      await removeAdmin(args[1]);
+      return;
+    }
+
+    // 複数のメールアドレスを管理者に設定
+    console.log(`\n🔄 ${args.length}人のユーザーを管理者に設定します...\n`);
+    
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const email of args) {
+      try {
+        await makeAdmin(email);
+        successCount++;
+      } catch (error) {
+        failCount++;
+      }
+      console.log(''); // 空行
+    }
+
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`✅ 成功: ${successCount}人`);
+    if (failCount > 0) {
+      console.log(`❌ 失敗: ${failCount}人`);
+    }
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+  } catch (error: any) {
+    console.error('❌ エラー:', error.message);
+    throw error;
   } finally {
     await prisma.$disconnect();
   }
 }
 
-// コマンドライン引数からメールアドレスを取得
-const email = process.argv[2];
-
-if (!email) {
-  console.error('使用方法: npx tsx scripts/make-admin.ts <email>');
-  console.error('例: npx tsx scripts/make-admin.ts admin@example.com');
-  process.exit(1);
-}
-
-makeAdmin(email)
+main()
   .then(() => {
     process.exit(0);
   })
   .catch((error) => {
-    console.error('エラー:', error);
+    console.error('スクリプトの実行中にエラーが発生しました:', error);
     process.exit(1);
   });
 

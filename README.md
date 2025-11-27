@@ -38,6 +38,26 @@ JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
 
 **重要**: 本番環境では `JWT_SECRET` を強力なランダム文字列に変更してください。
 
+**本番環境（Vercel）で管理者設定スクリプトを実行する場合**:
+
+ターミナルで環境変数を設定してから実行します：
+
+```bash
+# Vercelダッシュボードから PRISMA_DATABASE_URL をコピーして設定
+export PRISMA_DATABASE_URL="postgresql://..."
+
+# スクリプトを実行
+npx tsx scripts/make-admin.ts user@example.com
+```
+
+または、`.env` ファイルに `PRISMA_DATABASE_URL` を追加することもできます（ローカル開発時のみ）：
+
+```
+PRISMA_DATABASE_URL="postgresql://..."
+```
+
+**注意**: `.env` ファイルはGitにコミットされません（`.gitignore` に含まれています）。
+
 ### 3. データベースの初期化
 
 ```bash
@@ -141,17 +161,61 @@ PCのブラウザで [http://localhost:3000](http://localhost:3000) を開いて
 
 ### 管理者の機能
 
-- ✅ 打刻場所の設定・管理（`/admin/locations`）
-- ✅ 打刻履歴のExcel/PDFエクスポート
-- ✅ 15日締めの月次データ管理
-- ✅ **職員を選択して年間打刻歴のエクスポート**
-- ✅ **全職員の打刻データを個別に管理**
+- ✅ **ユーザー管理**（`/admin/users`）
+  - Web画面から管理者権限の付与・削除が可能
+  - 管理者一覧・スタッフ一覧の表示
+- ✅ **打刻申請管理**（`/admin/timecard-requests`）
+  - 職員からの打刻漏れ申請を承認・却下
+- ✅ **有給申請管理**（`/admin/leave-requests`）
+  - 職員からの有給申請を承認・却下
+- ✅ **時間外業務届管理**（`/admin/overtime-requests`）
+  - 職員からの時間外業務届を承認・却下
+- ✅ **打刻履歴のエクスポート**
+  - Excel/CSV形式でダウンロード
+  - 全職員、特定部署、特定職員のデータを選択可能
+  - 月次・年間データの管理
+
+### 管理者の設定方法
+
+#### 方法1: Web画面から設定（推奨）
+
+1. **既存の管理者でログイン**
+2. **ダッシュボードの「ユーザー管理」をクリック**
+3. **スタッフ一覧から管理者に設定したいユーザーを選択**
+4. **「管理者に設定」ボタンをクリック**
+
+#### 方法2: コマンドラインから設定
+
+**単一ユーザーを管理者に設定:**
+```bash
+export PRISMA_DATABASE_URL="postgresql://..."
+npx tsx scripts/make-admin.ts user@example.com
+```
+
+**複数ユーザーを一度に管理者に設定:**
+```bash
+export PRISMA_DATABASE_URL="postgresql://..."
+npx tsx scripts/make-admin.ts user1@example.com user2@example.com user3@example.com
+```
+
+**管理者一覧を表示:**
+```bash
+export PRISMA_DATABASE_URL="postgresql://..."
+npx tsx scripts/make-admin.ts --list
+```
+
+**管理者権限を削除:**
+```bash
+export PRISMA_DATABASE_URL="postgresql://..."
+npx tsx scripts/make-admin.ts --remove user@example.com
+```
 
 ### 注意事項
 
-- 管理者権限はデータベースで設定する必要があります
+- 最初の管理者はコマンドラインから設定する必要があります
+- 2人目以降の管理者はWeb画面から簡単に設定できます
 - 複数の管理者アカウントを作成できます
-- 管理者は他のユーザーの打刻履歴もエクスポート可能です
+- 自分自身の管理者権限は削除できません（誤操作防止）
 
 ## PWAとしてインストール
 
