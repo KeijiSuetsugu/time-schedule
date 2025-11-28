@@ -26,6 +26,8 @@ export default function AdminLocationsPage() {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [editingRadiusId, setEditingRadiusId] = useState<string | null>(null);
+  const [editingRadius, setEditingRadius] = useState<string>('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -149,6 +151,53 @@ export default function AdminLocationsPage() {
       }
     } catch (error) {
       console.error('Toggle enabled error:', error);
+    }
+  };
+
+  const handleStartEditRadius = (location: Location) => {
+    setEditingRadiusId(location.id);
+    setEditingRadius(location.radius.toString());
+  };
+
+  const handleCancelEditRadius = () => {
+    setEditingRadiusId(null);
+    setEditingRadius('');
+  };
+
+  const handleSaveRadius = async (locationId: string) => {
+    try {
+      const radiusValue = parseFloat(editingRadius);
+      
+      if (isNaN(radiusValue) || radiusValue < 10 || radiusValue > 10000) {
+        setError('半径は10〜10000メートルの範囲で指定してください');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/locations', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id: locationId,
+          radius: radiusValue,
+        }),
+      });
+
+      if (response.ok) {
+        setSuccess('半径を更新しました');
+        setEditingRadiusId(null);
+        setEditingRadius('');
+        await loadLocations();
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || '更新に失敗しました');
+      }
+    } catch (error: any) {
+      setError(error.message);
     }
   };
 
@@ -297,7 +346,43 @@ export default function AdminLocationsPage() {
                     <p className="text-sm text-gray-600">
                       緯度: {location.latitude}, 経度: {location.longitude}
                     </p>
-                    <p className="text-sm text-gray-600">半径: {location.radius}m</p>
+                    {editingRadiusId === location.id ? (
+                      <div className="flex items-center gap-2 mt-2">
+                        <label className="text-sm text-gray-600">半径:</label>
+                        <input
+                          type="number"
+                          min="10"
+                          max="10000"
+                          value={editingRadius}
+                          onChange={(e) => setEditingRadius(e.target.value)}
+                          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
+                          placeholder="100"
+                        />
+                        <span className="text-sm text-gray-600">m</span>
+                        <button
+                          onClick={() => handleSaveRadius(location.id)}
+                          className="px-2 py-1 rounded text-xs bg-blue-500 text-white hover:bg-blue-600"
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={handleCancelEditRadius}
+                          className="px-2 py-1 rounded text-xs bg-gray-300 text-gray-700 hover:bg-gray-400"
+                        >
+                          キャンセル
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm text-gray-600">半径: {location.radius}m</p>
+                        <button
+                          onClick={() => handleStartEditRadius(location)}
+                          className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 hover:bg-blue-200"
+                        >
+                          変更
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button
