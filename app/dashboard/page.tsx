@@ -617,7 +617,7 @@ export default function DashboardPage() {
               >
                 申請を管理する
                 {pendingCounts.timecardRequests > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse shadow-lg">
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg">
                     {pendingCounts.timecardRequests}
                   </span>
                 )}
@@ -638,7 +638,7 @@ export default function DashboardPage() {
             >
               有給申請を管理する
               {pendingCounts.leaveRequests > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse shadow-lg">
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg">
                   {pendingCounts.leaveRequests}
                 </span>
               )}
@@ -659,7 +659,7 @@ export default function DashboardPage() {
             >
               時間外業務届を管理する
               {pendingCounts.overtimeRequests > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse shadow-lg">
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg">
                   {pendingCounts.overtimeRequests}
                 </span>
               )}
