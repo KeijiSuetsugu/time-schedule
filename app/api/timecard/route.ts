@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/lib/rateLimit';
-import { checkLocationWithinRange } from '@/lib/location';
+import { checkLocationWithinRange, calculateDistance } from '@/lib/location';
 
 // 動的レンダリングを強制
 export const dynamic = 'force-dynamic';
@@ -47,6 +47,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // デバッグ情報を追加
+    console.log('打刻位置判定:', {
+      userLatitude: latitude,
+      userLongitude: longitude,
+      locations: locations.map(loc => ({
+        name: loc.name,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        radius: loc.radius,
+        enabled: loc.enabled,
+      }))
+    });
+
     const locationId = checkLocationWithinRange(
       latitude,
       longitude,
@@ -61,6 +74,25 @@ export async function POST(request: NextRequest) {
 
     if (!locationId) {
       const locationNames = locations.map(loc => loc.name).join('、');
+      
+      // 各場所との距離を計算してデバッグ情報として返す
+      const distances = locations.map(loc => {
+        const distance = calculateDistance(
+          latitude,
+          longitude,
+          loc.latitude,
+          loc.longitude
+        );
+        return {
+          name: loc.name,
+          distance: Math.round(distance),
+          radius: loc.radius,
+          withinRange: distance <= loc.radius,
+        };
+      });
+
+      console.log('距離判定結果:', distances);
+
       return NextResponse.json(
         { 
           error: `打刻可能な場所の範囲外です。許可された場所: ${locationNames}`,
@@ -70,6 +102,10 @@ export async function POST(request: NextRequest) {
             longitude: loc.longitude,
             radius: loc.radius,
           })),
+          debug: {
+            yourLocation: { latitude, longitude },
+            distances,
+          },
         },
         { status: 400 }
       );

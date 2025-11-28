@@ -232,12 +232,28 @@ export default function DashboardPage() {
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || `サーバーエラー (${response.status})`;
+          
+          // デバッグ情報をコンソールに出力
+          if (errorData.debug) {
+            console.log('=== 打刻エラー詳細 ===');
+            console.log('あなたの位置:', errorData.debug.yourLocation);
+            console.log('各場所との距離:', errorData.debug.distances);
+          }
+          
           // 位置情報エラーの詳細を表示
           if (errorData.allowedLocations && errorData.allowedLocations.length > 0) {
             const locationsInfo = errorData.allowedLocations
               .map((loc: any) => `${loc.name} (半径${loc.radius}m)`)
               .join('\n');
             errorMessage = `${errorMessage}\n\n許可された場所:\n${locationsInfo}`;
+            
+            // デバッグ情報を追加
+            if (errorData.debug && errorData.debug.distances) {
+              const distancesInfo = errorData.debug.distances
+                .map((d: any) => `${d.name}: ${d.distance}m (範囲: ${d.radius}m) ${d.withinRange ? '✓' : '✗'}`)
+                .join('\n');
+              errorMessage = `${errorMessage}\n\n距離の詳細:\n${distancesInfo}\n\nあなたの位置: 緯度 ${errorData.debug.yourLocation.latitude.toFixed(6)}, 経度 ${errorData.debug.yourLocation.longitude.toFixed(6)}`;
+            }
           }
         } catch {
           errorMessage = `サーバーエラー (${response.status})`;
