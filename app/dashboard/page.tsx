@@ -22,6 +22,13 @@ interface TimeCard {
   locationName?: string;
 }
 
+interface PendingCounts {
+  timecardRequests: number;
+  leaveRequests: number;
+  overtimeRequests: number;
+  total: number;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -39,6 +46,12 @@ export default function DashboardPage() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [employees, setEmployees] = useState<Array<{ id: string; name: string; email: string; department?: string }>>([]);
   const [periodType, setPeriodType] = useState<'monthly' | 'yearly'>('monthly');
+  const [pendingCounts, setPendingCounts] = useState<PendingCounts>({
+    timecardRequests: 0,
+    leaveRequests: 0,
+    overtimeRequests: 0,
+    total: 0,
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -54,11 +67,37 @@ export default function DashboardPage() {
     loadTimeCards();
     checkCurrentStatus();
     
-    // 管理者の場合は職員一覧を取得
+    // 管理者の場合は職員一覧と未承認件数を取得
     if (userData.role === 'admin') {
       loadEmployees();
+      loadPendingCounts();
     }
   }, [router]);
+
+  // 定期的に未承認件数を更新（管理者のみ）
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      const interval = setInterval(() => {
+        loadPendingCounts();
+      }, 30000); // 30秒ごとに更新
+
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  // ページが表示された時に件数を更新（管理画面から戻った時用）
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.role === 'admin') {
+        loadPendingCounts();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user]);
 
   const loadEmployees = async () => {
     try {
@@ -75,6 +114,24 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Load employees error:', error);
+    }
+  };
+
+  const loadPendingCounts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/pending-counts', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPendingCounts(data);
+      }
+    } catch (error) {
+      console.error('Load pending counts error:', error);
     }
   };
 
@@ -552,10 +609,18 @@ export default function DashboardPage() {
                 職員からの打刻漏れ申請を確認・承認できます。
               </p>
               <button
-                onClick={() => router.push('/admin/timecard-requests')}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-cyan-500/50"
+                onClick={() => {
+                  router.push('/admin/timecard-requests');
+                  loadPendingCounts(); // 画面遷移後に件数を更新
+                }}
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-cyan-500/50 relative"
               >
                 申請を管理する
+                {pendingCounts.timecardRequests > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse shadow-lg">
+                    {pendingCounts.timecardRequests}
+                  </span>
+                )}
             </button>
           </div>
 
@@ -565,10 +630,18 @@ export default function DashboardPage() {
               職員からの有給申請を確認・承認できます。
             </p>
             <button
-              onClick={() => router.push('/admin/leave-requests')}
-              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-pink-500/50"
+              onClick={() => {
+                router.push('/admin/leave-requests');
+                loadPendingCounts(); // 画面遷移後に件数を更新
+              }}
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-pink-500/50 relative"
             >
               有給申請を管理する
+              {pendingCounts.leaveRequests > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse shadow-lg">
+                  {pendingCounts.leaveRequests}
+                </span>
+              )}
             </button>
           </div>
 
@@ -578,10 +651,18 @@ export default function DashboardPage() {
               職員からの時間外業務届を確認・承認できます。
             </p>
             <button
-              onClick={() => router.push('/admin/overtime-requests')}
-              className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-purple-500/50"
+              onClick={() => {
+                router.push('/admin/overtime-requests');
+                loadPendingCounts(); // 画面遷移後に件数を更新
+              }}
+              className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-purple-500/50 relative"
             >
               時間外業務届を管理する
+              {pendingCounts.overtimeRequests > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse shadow-lg">
+                  {pendingCounts.overtimeRequests}
+                </span>
+              )}
             </button>
           </div>
           </>
