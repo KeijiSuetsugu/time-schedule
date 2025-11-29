@@ -7,12 +7,12 @@ echo "🔧 Starting Vercel build..."
 echo "📦 Generating Prisma Client..."
 npx prisma generate
 
-# マイグレーションを実行（Vercel環境のみ）
-if [ "$VERCEL" = "1" ]; then
+# マイグレーションを実行（Vercel環境または本番環境）
+if [ "$VERCEL" = "1" ] || [ "$NODE_ENV" = "production" ]; then
   echo "🗄️  Running database migrations..."
   npx prisma migrate deploy
 else
-  echo "⏭️  Skipping migrations (not in Vercel environment)"
+  echo "⏭️  Skipping migrations (not in production environment)"
 fi
 
 # Next.jsをビルド
