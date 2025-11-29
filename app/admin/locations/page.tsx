@@ -26,8 +26,13 @@ export default function AdminLocationsPage() {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [editingRadiusId, setEditingRadiusId] = useState<string | null>(null);
-  const [editingRadius, setEditingRadius] = useState<string>('');
+  const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
+  const [editingData, setEditingData] = useState({
+    name: '',
+    latitude: '',
+    longitude: '',
+    radius: '',
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -155,21 +160,49 @@ export default function AdminLocationsPage() {
   };
 
   const handleStartEditRadius = (location: Location) => {
-    setEditingRadiusId(location.id);
-    setEditingRadius(location.radius.toString());
+    setEditingLocationId(location.id);
+    setEditingData({
+      name: location.name,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      radius: location.radius.toString(),
+    });
   };
 
   const handleCancelEditRadius = () => {
-    setEditingRadiusId(null);
-    setEditingRadius('');
+    setEditingLocationId(null);
+    setEditingData({
+      name: '',
+      latitude: '',
+      longitude: '',
+      radius: '',
+    });
   };
 
-  const handleSaveRadius = async (locationId: string) => {
+  const handleSaveLocation = async (locationId: string) => {
     try {
-      const radiusValue = parseFloat(editingRadius);
+      // バリデーション
+      const radiusValue = parseFloat(editingData.radius);
+      const latValue = parseFloat(editingData.latitude);
+      const lonValue = parseFloat(editingData.longitude);
       
       if (isNaN(radiusValue) || radiusValue < 10 || radiusValue > 10000) {
         setError('半径は10〜10000メートルの範囲で指定してください');
+        return;
+      }
+
+      if (isNaN(latValue) || latValue < -90 || latValue > 90) {
+        setError('緯度は-90から90の範囲で指定してください');
+        return;
+      }
+
+      if (isNaN(lonValue) || lonValue < -180 || lonValue > 180) {
+        setError('経度は-180から180の範囲で指定してください');
+        return;
+      }
+
+      if (!editingData.name.trim()) {
+        setError('場所の名前を入力してください');
         return;
       }
 
@@ -182,14 +215,22 @@ export default function AdminLocationsPage() {
         },
         body: JSON.stringify({
           id: locationId,
+          name: editingData.name.trim(),
+          latitude: editingData.latitude,
+          longitude: editingData.longitude,
           radius: radiusValue,
         }),
       });
 
       if (response.ok) {
-        setSuccess('半径を更新しました');
-        setEditingRadiusId(null);
-        setEditingRadius('');
+        setSuccess('場所情報を更新しました');
+        setEditingLocationId(null);
+        setEditingData({
+          name: '',
+          latitude: '',
+          longitude: '',
+          radius: '',
+        });
         await loadLocations();
         setTimeout(() => setSuccess(''), 3000);
       } else {
@@ -328,80 +369,131 @@ export default function AdminLocationsPage() {
               {locations.map((location) => (
                 <div
                   key={location.id}
-                  className="p-4 bg-gray-50 rounded-lg flex justify-between items-center"
+                  className="p-4 bg-gray-50 rounded-lg"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-gray-900">{location.name}</h3>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
-                          location.enabled
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {location.enabled ? '有効' : '無効'}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      緯度: {location.latitude}, 経度: {location.longitude}
-                    </p>
-                    {editingRadiusId === location.id ? (
-                      <div className="flex items-center gap-2 mt-2">
-                        <label className="text-sm text-gray-600">半径:</label>
+                  {editingLocationId === location.id ? (
+                    // 編集モード
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          場所の名前
+                        </label>
+                        <input
+                          type="text"
+                          value={editingData.name}
+                          onChange={(e) => setEditingData({ ...editingData, name: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                          placeholder="例: 本社"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            緯度
+                          </label>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={editingData.latitude}
+                            onChange={(e) => setEditingData({ ...editingData, latitude: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            placeholder="例: 35.6812"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            経度
+                          </label>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={editingData.longitude}
+                            onChange={(e) => setEditingData({ ...editingData, longitude: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            placeholder="例: 139.7671"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          半径（メートル）
+                        </label>
                         <input
                           type="number"
                           min="10"
                           max="10000"
-                          value={editingRadius}
-                          onChange={(e) => setEditingRadius(e.target.value)}
-                          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
+                          value={editingData.radius}
+                          onChange={(e) => setEditingData({ ...editingData, radius: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                           placeholder="100"
                         />
-                        <span className="text-sm text-gray-600">m</span>
+                      </div>
+
+                      <div className="flex gap-2">
                         <button
-                          onClick={() => handleSaveRadius(location.id)}
-                          className="px-2 py-1 rounded text-xs bg-blue-500 text-white hover:bg-blue-600"
+                          onClick={() => handleSaveLocation(location.id)}
+                          className="flex-1 px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 text-sm font-semibold"
                         >
                           保存
                         </button>
                         <button
                           onClick={handleCancelEditRadius}
-                          className="px-2 py-1 rounded text-xs bg-gray-300 text-gray-700 hover:bg-gray-400"
+                          className="flex-1 px-4 py-2 rounded bg-gray-300 text-gray-700 hover:bg-gray-400 text-sm font-semibold"
                         >
                           キャンセル
                         </button>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-sm text-gray-600">半径: {location.radius}m</p>
+                    </div>
+                  ) : (
+                    // 表示モード
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-gray-900 text-lg">{location.name}</h3>
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-semibold ${
+                              location.enabled
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {location.enabled ? '有効' : '無効'}
+                          </span>
+                        </div>
+                        <div className="space-y-1 text-sm text-gray-600">
+                          <p>📍 緯度: {location.latitude}</p>
+                          <p>📍 経度: {location.longitude}</p>
+                          <p>📏 半径: {location.radius}m</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 ml-4">
                         <button
                           onClick={() => handleStartEditRadius(location)}
-                          className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 hover:bg-blue-200"
+                          className="px-4 py-2 rounded text-sm bg-blue-100 text-blue-800 hover:bg-blue-200 font-semibold whitespace-nowrap"
                         >
-                          変更
+                          ✏️ 編集
+                        </button>
+                        <button
+                          onClick={() => handleToggleEnabled(location)}
+                          className={`px-4 py-2 rounded text-sm font-semibold whitespace-nowrap ${
+                            location.enabled
+                              ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                              : 'bg-green-100 text-green-800 hover:bg-green-200'
+                          }`}
+                        >
+                          {location.enabled ? '無効化' : '有効化'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLocation(location.id)}
+                          className="px-4 py-2 rounded text-sm bg-red-100 text-red-800 hover:bg-red-200 font-semibold whitespace-nowrap"
+                        >
+                          🗑️ 削除
                         </button>
                       </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleToggleEnabled(location)}
-                      className={`px-3 py-1 rounded text-sm ${
-                        location.enabled
-                          ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                          : 'bg-green-100 text-green-800 hover:bg-green-200'
-                      }`}
-                    >
-                      {location.enabled ? '無効化' : '有効化'}
-                    </button>
-                    <button
-                      onClick={() => handleDeleteLocation(location.id)}
-                      className="px-3 py-1 rounded text-sm bg-red-100 text-red-800 hover:bg-red-200"
-                    >
-                      削除
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
