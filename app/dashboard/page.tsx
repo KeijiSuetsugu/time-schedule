@@ -575,20 +575,6 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* プロフィール設定 */}
-        <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">⚙️ プロフィール設定</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            メールアドレスやパスワードを変更できます。
-          </p>
-          <button
-            onClick={() => router.push('/profile')}
-            className="w-full bg-gradient-to-r from-gray-600 to-gray-700 text-white py-3 rounded-lg font-semibold hover:from-gray-700 hover:to-gray-800 transition-all shadow-lg"
-          >
-            設定を変更する
-          </button>
-        </div>
-
         {/* 時間外業務届 */}
         <div className="card">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">時間外業務届</h2>
@@ -600,6 +586,20 @@ export default function DashboardPage() {
             className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
           >
             時間外業務届を申請する
+          </button>
+        </div>
+
+        {/* プロフィール設定 */}
+        <div className="card">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">⚙️ プロフィール設定</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            メールアドレスやパスワードを変更できます。
+          </p>
+          <button
+            onClick={() => router.push('/profile')}
+            className="w-full bg-gradient-to-r from-gray-600 to-gray-700 text-white py-3 rounded-lg font-semibold hover:from-gray-700 hover:to-gray-800 transition-all shadow-lg"
+          >
+            設定を変更する
           </button>
         </div>
 

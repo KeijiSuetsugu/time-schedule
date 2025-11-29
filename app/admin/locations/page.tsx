@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 interface Location {
   id: string;
   name: string;
-  latitude: number;
-  longitude: number;
+  latitude: string; // Decimal型を文字列として扱う
+  longitude: string; // Decimal型を文字列として扱う
   radius: number;
   enabled: boolean;
 }
@@ -85,8 +85,8 @@ export default function AdminLocationsPage() {
         },
         body: JSON.stringify({
           name: formData.name,
-          latitude: parseFloat(formData.latitude),
-          longitude: parseFloat(formData.longitude),
+          latitude: formData.latitude, // 文字列のまま送信
+          longitude: formData.longitude, // 文字列のまま送信
           radius: parseFloat(formData.radius),
           enabled: true,
         }),
@@ -272,8 +272,8 @@ export default function AdminLocationsPage() {
                     緯度
                   </label>
                   <input
-                    type="number"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.latitude}
                     onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
                     className="input-field"
@@ -286,8 +286,8 @@ export default function AdminLocationsPage() {
                     経度
                   </label>
                   <input
-                    type="number"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.longitude}
                     onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
                     className="input-field"

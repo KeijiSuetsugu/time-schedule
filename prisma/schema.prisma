@@ -46,8 +46,8 @@ model TimeCard {
 model Location {
   id          String   @id @default(cuid())
   name        String   // 場所の名前（例: "本社"、"支社"）
-  latitude    Float    // 緯度
-  longitude   Float    // 経度
+  latitude    Decimal  @db.Decimal(10, 8) // 緯度（高精度）
+  longitude   Decimal  @db.Decimal(11, 8) // 経度（高精度）
   radius      Float    @default(100) // 許可範囲（メートル）
   enabled     Boolean  @default(true) // 有効/無効
   createdAt   DateTime @default(now())

@@ -53,8 +53,8 @@ export async function POST(request: NextRequest) {
       userLongitude: longitude,
       locations: locations.map(loc => ({
         name: loc.name,
-        latitude: loc.latitude,
-        longitude: loc.longitude,
+        latitude: typeof loc.latitude === 'object' ? loc.latitude.toString() : loc.latitude,
+        longitude: typeof loc.longitude === 'object' ? loc.longitude.toString() : loc.longitude,
         radius: loc.radius,
         enabled: loc.enabled,
       }))
@@ -77,11 +77,15 @@ export async function POST(request: NextRequest) {
       
       // 各場所との距離を計算してデバッグ情報として返す
       const distances = locations.map(loc => {
+        // Decimal型を数値に変換
+        const locLat = typeof loc.latitude === 'object' ? parseFloat(loc.latitude.toString()) : loc.latitude;
+        const locLon = typeof loc.longitude === 'object' ? parseFloat(loc.longitude.toString()) : loc.longitude;
+        
         const distance = calculateDistance(
           latitude,
           longitude,
-          loc.latitude,
-          loc.longitude
+          locLat,
+          locLon
         );
         return {
           name: loc.name,
@@ -98,8 +102,8 @@ export async function POST(request: NextRequest) {
           error: `打刻可能な場所の範囲外です。許可された場所: ${locationNames}`,
           allowedLocations: locations.map(loc => ({
             name: loc.name,
-            latitude: loc.latitude,
-            longitude: loc.longitude,
+            latitude: typeof loc.latitude === 'object' ? loc.latitude.toString() : loc.latitude,
+            longitude: typeof loc.longitude === 'object' ? loc.longitude.toString() : loc.longitude,
             radius: loc.radius,
           })),
           debug: {

@@ -91,3 +91,4 @@ checkLocations()
     process.exit(1);
   });
 
+

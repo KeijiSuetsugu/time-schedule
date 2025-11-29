@@ -36,16 +36,30 @@ export function calculateDistance(
 export function checkLocationWithinRange(
   latitude: number,
   longitude: number,
-  locations: Array<{ id: string; latitude: number; longitude: number; radius: number; enabled: boolean }>
+  locations: Array<{ 
+    id: string; 
+    latitude: number | string; // Decimal型（文字列）も受け取れるように
+    longitude: number | string; // Decimal型（文字列）も受け取れるように
+    radius: number; 
+    enabled: boolean 
+  }>
 ): string | null {
   for (const location of locations) {
     if (!location.enabled) continue;
     
+    // Decimal型（文字列）の場合は数値に変換
+    const locLat = typeof location.latitude === 'string' 
+      ? parseFloat(location.latitude) 
+      : location.latitude;
+    const locLon = typeof location.longitude === 'string' 
+      ? parseFloat(location.longitude) 
+      : location.longitude;
+    
     const distance = calculateDistance(
       latitude,
       longitude,
-      location.latitude,
-      location.longitude
+      locLat,
+      locLon
     );
     
     if (distance <= location.radius) {
