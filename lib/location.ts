@@ -38,8 +38,8 @@ export function checkLocationWithinRange(
   longitude: number,
   locations: Array<{ 
     id: string; 
-    latitude: number | string; // Decimal型（文字列）も受け取れるように
-    longitude: number | string; // Decimal型（文字列）も受け取れるように
+    latitude: any; // Decimal型またはnumber型
+    longitude: any; // Decimal型またはnumber型
     radius: number; 
     enabled: boolean 
   }>
@@ -47,12 +47,18 @@ export function checkLocationWithinRange(
   for (const location of locations) {
     if (!location.enabled) continue;
     
-    // Decimal型（文字列）の場合は数値に変換
-    const locLat = typeof location.latitude === 'string' 
-      ? parseFloat(location.latitude) 
+    // Decimal型の場合は文字列に変換してからparseFloat
+    // number型の場合はそのまま使用
+    const locLat = typeof location.latitude === 'object' 
+      ? parseFloat(location.latitude.toString())
+      : typeof location.latitude === 'string'
+      ? parseFloat(location.latitude)
       : location.latitude;
-    const locLon = typeof location.longitude === 'string' 
-      ? parseFloat(location.longitude) 
+    
+    const locLon = typeof location.longitude === 'object' 
+      ? parseFloat(location.longitude.toString())
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
       : location.longitude;
     
     const distance = calculateDistance(
