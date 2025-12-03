@@ -76,3 +76,385 @@ export function checkLocationWithinRange(
   return null;
 }
 
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
+      : typeof location.longitude === 'string'
+      ? parseFloat(location.longitude)
+      : location.longitude;
+    
+    const distance = calculateDistance(
+      latitude,
+      longitude,
+      locLat,
+      locLon
+    );
+    
+    if (distance <= location.radius) {
+      return location.id;
+    }
+  }
+  
+  return null;
+}
+
