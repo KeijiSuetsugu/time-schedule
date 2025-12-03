@@ -717,6 +717,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -846,6 +847,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -975,6 +977,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -1104,6 +1107,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -1233,6 +1237,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -1362,6 +1367,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -1491,910 +1497,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
-                  <option value="看護師">看護師</option>
-                  <option value="クラーク">クラーク</option>
-                  <option value="放射線科">放射線科</option>
-                  <option value="リハビリ">リハビリ</option>
-                  <option value="リハ助手">リハ助手</option>
-                  <option value="その他">その他</option>
-                </select>
-              </div>
-
-              {/* 職員選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  職員を選択
-                </label>
-                <select
-                  value={selectedEmployeeId}
-                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                  className="input-field"
-                >
-                  <option value="">
-                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
-                  </option>
-                  {employees
-                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
-                    .map((employee) => (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.name} ({employee.department || '部署未設定'})
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* 期間タイプ選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  期間タイプ
-                </label>
-                <select
-                  value={periodType}
-                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
-                  className="input-field"
-                >
-                  <option value="monthly">15日締め月次</option>
-                  <option value="yearly">年間</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    年
-                  </label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="input-field"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}年
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {periodType === 'monthly' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      月
-                    </label>
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                      className="input-field"
-                    >
-                      {months.map((month) => (
-                        <option key={month} value={month}>
-                          {month}月
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="w-full btn-primary flex items-center justify-center gap-2"
-              >
-                {exporting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>処理中...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>📊</span>
-                    <span>Excelでダウンロード</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-
-                ※ Excel形式（.xlsx）でダウンロードされます
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {/* 部署選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  部署でフィルター
-                </label>
-                <select
-                  value={selectedDepartment}
-                  onChange={(e) => {
-                    setSelectedDepartment(e.target.value);
-                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
-                  }}
-                  className="input-field"
-                >
-                  <option value="">全部署</option>
-                  <option value="看護師">看護師</option>
-                  <option value="クラーク">クラーク</option>
-                  <option value="放射線科">放射線科</option>
-                  <option value="リハビリ">リハビリ</option>
-                  <option value="リハ助手">リハ助手</option>
-                  <option value="その他">その他</option>
-                </select>
-              </div>
-
-              {/* 職員選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  職員を選択
-                </label>
-                <select
-                  value={selectedEmployeeId}
-                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                  className="input-field"
-                >
-                  <option value="">
-                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
-                  </option>
-                  {employees
-                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
-                    .map((employee) => (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.name} ({employee.department || '部署未設定'})
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* 期間タイプ選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  期間タイプ
-                </label>
-                <select
-                  value={periodType}
-                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
-                  className="input-field"
-                >
-                  <option value="monthly">15日締め月次</option>
-                  <option value="yearly">年間</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    年
-                  </label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="input-field"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}年
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {periodType === 'monthly' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      月
-                    </label>
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                      className="input-field"
-                    >
-                      {months.map((month) => (
-                        <option key={month} value={month}>
-                          {month}月
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="w-full btn-primary flex items-center justify-center gap-2"
-              >
-                {exporting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>処理中...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>📊</span>
-                    <span>Excelでダウンロード</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-                ※ Excel形式（.xlsx）でダウンロードされます
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {/* 部署選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  部署でフィルター
-                </label>
-                <select
-                  value={selectedDepartment}
-                  onChange={(e) => {
-                    setSelectedDepartment(e.target.value);
-                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
-                  }}
-                  className="input-field"
-                >
-                  <option value="">全部署</option>
-                  <option value="看護師">看護師</option>
-                  <option value="クラーク">クラーク</option>
-                  <option value="放射線科">放射線科</option>
-                  <option value="リハビリ">リハビリ</option>
-                  <option value="リハ助手">リハ助手</option>
-                  <option value="その他">その他</option>
-                </select>
-              </div>
-
-              {/* 職員選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  職員を選択
-                </label>
-                <select
-                  value={selectedEmployeeId}
-                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                  className="input-field"
-                >
-                  <option value="">
-                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
-                  </option>
-                  {employees
-                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
-                    .map((employee) => (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.name} ({employee.department || '部署未設定'})
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* 期間タイプ選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  期間タイプ
-                </label>
-                <select
-                  value={periodType}
-                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
-                  className="input-field"
-                >
-                  <option value="monthly">15日締め月次</option>
-                  <option value="yearly">年間</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    年
-                  </label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="input-field"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}年
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {periodType === 'monthly' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      月
-                    </label>
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                      className="input-field"
-                    >
-                      {months.map((month) => (
-                        <option key={month} value={month}>
-                          {month}月
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="w-full btn-primary flex items-center justify-center gap-2"
-              >
-                {exporting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>処理中...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>📊</span>
-                    <span>Excelでダウンロード</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-                ※ Excel形式（.xlsx）でダウンロードされます
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {/* 部署選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  部署でフィルター
-                </label>
-                <select
-                  value={selectedDepartment}
-                  onChange={(e) => {
-                    setSelectedDepartment(e.target.value);
-                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
-                  }}
-                  className="input-field"
-                >
-                  <option value="">全部署</option>
-                  <option value="看護師">看護師</option>
-                  <option value="クラーク">クラーク</option>
-                  <option value="放射線科">放射線科</option>
-                  <option value="リハビリ">リハビリ</option>
-                  <option value="リハ助手">リハ助手</option>
-                  <option value="その他">その他</option>
-                </select>
-              </div>
-
-              {/* 職員選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  職員を選択
-                </label>
-                <select
-                  value={selectedEmployeeId}
-                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                  className="input-field"
-                >
-                  <option value="">
-                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
-                  </option>
-                  {employees
-                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
-                    .map((employee) => (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.name} ({employee.department || '部署未設定'})
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* 期間タイプ選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  期間タイプ
-                </label>
-                <select
-                  value={periodType}
-                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
-                  className="input-field"
-                >
-                  <option value="monthly">15日締め月次</option>
-                  <option value="yearly">年間</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    年
-                  </label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="input-field"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}年
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {periodType === 'monthly' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      月
-                    </label>
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                      className="input-field"
-                    >
-                      {months.map((month) => (
-                        <option key={month} value={month}>
-                          {month}月
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="w-full btn-primary flex items-center justify-center gap-2"
-              >
-                {exporting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>処理中...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>📊</span>
-                    <span>Excelでダウンロード</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-                ※ Excel形式（.xlsx）でダウンロードされます
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {/* 部署選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  部署でフィルター
-                </label>
-                <select
-                  value={selectedDepartment}
-                  onChange={(e) => {
-                    setSelectedDepartment(e.target.value);
-                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
-                  }}
-                  className="input-field"
-                >
-                  <option value="">全部署</option>
-                  <option value="看護師">看護師</option>
-                  <option value="クラーク">クラーク</option>
-                  <option value="放射線科">放射線科</option>
-                  <option value="リハビリ">リハビリ</option>
-                  <option value="リハ助手">リハ助手</option>
-                  <option value="その他">その他</option>
-                </select>
-              </div>
-
-              {/* 職員選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  職員を選択
-                </label>
-                <select
-                  value={selectedEmployeeId}
-                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                  className="input-field"
-                >
-                  <option value="">
-                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
-                  </option>
-                  {employees
-                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
-                    .map((employee) => (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.name} ({employee.department || '部署未設定'})
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* 期間タイプ選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  期間タイプ
-                </label>
-                <select
-                  value={periodType}
-                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
-                  className="input-field"
-                >
-                  <option value="monthly">15日締め月次</option>
-                  <option value="yearly">年間</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    年
-                  </label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="input-field"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}年
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {periodType === 'monthly' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      月
-                    </label>
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                      className="input-field"
-                    >
-                      {months.map((month) => (
-                        <option key={month} value={month}>
-                          {month}月
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="w-full btn-primary flex items-center justify-center gap-2"
-              >
-                {exporting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>処理中...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>📊</span>
-                    <span>Excelでダウンロード</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-                ※ Excel形式（.xlsx）でダウンロードされます
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {/* 部署選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  部署でフィルター
-                </label>
-                <select
-                  value={selectedDepartment}
-                  onChange={(e) => {
-                    setSelectedDepartment(e.target.value);
-                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
-                  }}
-                  className="input-field"
-                >
-                  <option value="">全部署</option>
-                  <option value="看護師">看護師</option>
-                  <option value="クラーク">クラーク</option>
-                  <option value="放射線科">放射線科</option>
-                  <option value="リハビリ">リハビリ</option>
-                  <option value="リハ助手">リハ助手</option>
-                  <option value="その他">その他</option>
-                </select>
-              </div>
-
-              {/* 職員選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  職員を選択
-                </label>
-                <select
-                  value={selectedEmployeeId}
-                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                  className="input-field"
-                >
-                  <option value="">
-                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
-                  </option>
-                  {employees
-                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
-                    .map((employee) => (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.name} ({employee.department || '部署未設定'})
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* 期間タイプ選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  期間タイプ
-                </label>
-                <select
-                  value={periodType}
-                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
-                  className="input-field"
-                >
-                  <option value="monthly">15日締め月次</option>
-                  <option value="yearly">年間</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    年
-                  </label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="input-field"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}年
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {periodType === 'monthly' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      月
-                    </label>
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                      className="input-field"
-                    >
-                      {months.map((month) => (
-                        <option key={month} value={month}>
-                          {month}月
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="w-full btn-primary flex items-center justify-center gap-2"
-              >
-                {exporting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>処理中...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>📊</span>
-                    <span>Excelでダウンロード</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-                ※ Excel形式（.xlsx）でダウンロードされます
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {/* 部署選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  部署でフィルター
-                </label>
-                <select
-                  value={selectedDepartment}
-                  onChange={(e) => {
-                    setSelectedDepartment(e.target.value);
-                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
-                  }}
-                  className="input-field"
-                >
-                  <option value="">全部署</option>
-                  <option value="看護師">看護師</option>
-                  <option value="クラーク">クラーク</option>
-                  <option value="放射線科">放射線科</option>
-                  <option value="リハビリ">リハビリ</option>
-                  <option value="リハ助手">リハ助手</option>
-                  <option value="その他">その他</option>
-                </select>
-              </div>
-
-              {/* 職員選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  職員を選択
-                </label>
-                <select
-                  value={selectedEmployeeId}
-                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                  className="input-field"
-                >
-                  <option value="">
-                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
-                  </option>
-                  {employees
-                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
-                    .map((employee) => (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.name} ({employee.department || '部署未設定'})
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* 期間タイプ選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  期間タイプ
-                </label>
-                <select
-                  value={periodType}
-                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
-                  className="input-field"
-                >
-                  <option value="monthly">15日締め月次</option>
-                  <option value="yearly">年間</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    年
-                  </label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="input-field"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}年
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {periodType === 'monthly' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      月
-                    </label>
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                      className="input-field"
-                    >
-                      {months.map((month) => (
-                        <option key={month} value={month}>
-                          {month}月
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="w-full btn-primary flex items-center justify-center gap-2"
-              >
-                {exporting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>処理中...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>📊</span>
-                    <span>Excelでダウンロード</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-                ※ Excel形式（.xlsx）でダウンロードされます
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {/* 部署選択 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  部署でフィルター
-                </label>
-                <select
-                  value={selectedDepartment}
-                  onChange={(e) => {
-                    setSelectedDepartment(e.target.value);
-                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
-                  }}
-                  className="input-field"
-                >
-                  <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -2525,6 +1628,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -2654,6 +1758,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -2783,6 +1888,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -2912,6 +2018,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -3041,6 +2148,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -3170,6 +2278,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -3299,6 +2408,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -3429,6 +2539,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -3558,6 +2669,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -3687,6 +2799,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -3816,6 +2929,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -3945,6 +3059,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -4074,6 +3189,7 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -4203,6 +3319,918 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">全部署</option>
+                  <option value="医師">医師</option>
+                  <option value="看護師">看護師</option>
+                  <option value="クラーク">クラーク</option>
+                  <option value="放射線科">放射線科</option>
+                  <option value="リハビリ">リハビリ</option>
+                  <option value="リハ助手">リハ助手</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
+
+              {/* 職員選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  職員を選択
+                </label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">
+                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
+                  </option>
+                  {employees
+                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
+                    .map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} ({employee.department || '部署未設定'})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* 期間タイプ選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  期間タイプ
+                </label>
+                <select
+                  value={periodType}
+                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
+                  className="input-field"
+                >
+                  <option value="monthly">15日締め月次</option>
+                  <option value="yearly">年間</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    年
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="input-field"
+                  >
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}年
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {periodType === 'monthly' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      月
+                    </label>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                      className="input-field"
+                    >
+                      {months.map((month) => (
+                        <option key={month} value={month}>
+                          {month}月
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="w-full btn-primary flex items-center justify-center gap-2"
+              >
+                {exporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>処理中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📊</span>
+                    <span>Excelでダウンロード</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+
+                ※ Excel形式（.xlsx）でダウンロードされます
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* 部署選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  部署でフィルター
+                </label>
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => {
+                    setSelectedDepartment(e.target.value);
+                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
+                  }}
+                  className="input-field"
+                >
+                  <option value="">全部署</option>
+                  <option value="医師">医師</option>
+                  <option value="看護師">看護師</option>
+                  <option value="クラーク">クラーク</option>
+                  <option value="放射線科">放射線科</option>
+                  <option value="リハビリ">リハビリ</option>
+                  <option value="リハ助手">リハ助手</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
+
+              {/* 職員選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  職員を選択
+                </label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">
+                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
+                  </option>
+                  {employees
+                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
+                    .map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} ({employee.department || '部署未設定'})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* 期間タイプ選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  期間タイプ
+                </label>
+                <select
+                  value={periodType}
+                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
+                  className="input-field"
+                >
+                  <option value="monthly">15日締め月次</option>
+                  <option value="yearly">年間</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    年
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="input-field"
+                  >
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}年
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {periodType === 'monthly' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      月
+                    </label>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                      className="input-field"
+                    >
+                      {months.map((month) => (
+                        <option key={month} value={month}>
+                          {month}月
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="w-full btn-primary flex items-center justify-center gap-2"
+              >
+                {exporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>処理中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📊</span>
+                    <span>Excelでダウンロード</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+                ※ Excel形式（.xlsx）でダウンロードされます
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* 部署選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  部署でフィルター
+                </label>
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => {
+                    setSelectedDepartment(e.target.value);
+                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
+                  }}
+                  className="input-field"
+                >
+                  <option value="">全部署</option>
+                  <option value="医師">医師</option>
+                  <option value="看護師">看護師</option>
+                  <option value="クラーク">クラーク</option>
+                  <option value="放射線科">放射線科</option>
+                  <option value="リハビリ">リハビリ</option>
+                  <option value="リハ助手">リハ助手</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
+
+              {/* 職員選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  職員を選択
+                </label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">
+                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
+                  </option>
+                  {employees
+                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
+                    .map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} ({employee.department || '部署未設定'})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* 期間タイプ選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  期間タイプ
+                </label>
+                <select
+                  value={periodType}
+                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
+                  className="input-field"
+                >
+                  <option value="monthly">15日締め月次</option>
+                  <option value="yearly">年間</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    年
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="input-field"
+                  >
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}年
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {periodType === 'monthly' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      月
+                    </label>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                      className="input-field"
+                    >
+                      {months.map((month) => (
+                        <option key={month} value={month}>
+                          {month}月
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="w-full btn-primary flex items-center justify-center gap-2"
+              >
+                {exporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>処理中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📊</span>
+                    <span>Excelでダウンロード</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+                ※ Excel形式（.xlsx）でダウンロードされます
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* 部署選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  部署でフィルター
+                </label>
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => {
+                    setSelectedDepartment(e.target.value);
+                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
+                  }}
+                  className="input-field"
+                >
+                  <option value="">全部署</option>
+                  <option value="医師">医師</option>
+                  <option value="看護師">看護師</option>
+                  <option value="クラーク">クラーク</option>
+                  <option value="放射線科">放射線科</option>
+                  <option value="リハビリ">リハビリ</option>
+                  <option value="リハ助手">リハ助手</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
+
+              {/* 職員選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  職員を選択
+                </label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">
+                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
+                  </option>
+                  {employees
+                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
+                    .map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} ({employee.department || '部署未設定'})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* 期間タイプ選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  期間タイプ
+                </label>
+                <select
+                  value={periodType}
+                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
+                  className="input-field"
+                >
+                  <option value="monthly">15日締め月次</option>
+                  <option value="yearly">年間</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    年
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="input-field"
+                  >
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}年
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {periodType === 'monthly' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      月
+                    </label>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                      className="input-field"
+                    >
+                      {months.map((month) => (
+                        <option key={month} value={month}>
+                          {month}月
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="w-full btn-primary flex items-center justify-center gap-2"
+              >
+                {exporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>処理中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📊</span>
+                    <span>Excelでダウンロード</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+                ※ Excel形式（.xlsx）でダウンロードされます
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* 部署選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  部署でフィルター
+                </label>
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => {
+                    setSelectedDepartment(e.target.value);
+                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
+                  }}
+                  className="input-field"
+                >
+                  <option value="">全部署</option>
+                  <option value="医師">医師</option>
+                  <option value="看護師">看護師</option>
+                  <option value="クラーク">クラーク</option>
+                  <option value="放射線科">放射線科</option>
+                  <option value="リハビリ">リハビリ</option>
+                  <option value="リハ助手">リハ助手</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
+
+              {/* 職員選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  職員を選択
+                </label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">
+                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
+                  </option>
+                  {employees
+                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
+                    .map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} ({employee.department || '部署未設定'})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* 期間タイプ選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  期間タイプ
+                </label>
+                <select
+                  value={periodType}
+                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
+                  className="input-field"
+                >
+                  <option value="monthly">15日締め月次</option>
+                  <option value="yearly">年間</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    年
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="input-field"
+                  >
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}年
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {periodType === 'monthly' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      月
+                    </label>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                      className="input-field"
+                    >
+                      {months.map((month) => (
+                        <option key={month} value={month}>
+                          {month}月
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="w-full btn-primary flex items-center justify-center gap-2"
+              >
+                {exporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>処理中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📊</span>
+                    <span>Excelでダウンロード</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+                ※ Excel形式（.xlsx）でダウンロードされます
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* 部署選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  部署でフィルター
+                </label>
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => {
+                    setSelectedDepartment(e.target.value);
+                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
+                  }}
+                  className="input-field"
+                >
+                  <option value="">全部署</option>
+                  <option value="医師">医師</option>
+                  <option value="看護師">看護師</option>
+                  <option value="クラーク">クラーク</option>
+                  <option value="放射線科">放射線科</option>
+                  <option value="リハビリ">リハビリ</option>
+                  <option value="リハ助手">リハ助手</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
+
+              {/* 職員選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  職員を選択
+                </label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">
+                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
+                  </option>
+                  {employees
+                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
+                    .map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} ({employee.department || '部署未設定'})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* 期間タイプ選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  期間タイプ
+                </label>
+                <select
+                  value={periodType}
+                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
+                  className="input-field"
+                >
+                  <option value="monthly">15日締め月次</option>
+                  <option value="yearly">年間</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    年
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="input-field"
+                  >
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}年
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {periodType === 'monthly' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      月
+                    </label>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                      className="input-field"
+                    >
+                      {months.map((month) => (
+                        <option key={month} value={month}>
+                          {month}月
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="w-full btn-primary flex items-center justify-center gap-2"
+              >
+                {exporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>処理中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📊</span>
+                    <span>Excelでダウンロード</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+                ※ Excel形式（.xlsx）でダウンロードされます
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* 部署選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  部署でフィルター
+                </label>
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => {
+                    setSelectedDepartment(e.target.value);
+                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
+                  }}
+                  className="input-field"
+                >
+                  <option value="">全部署</option>
+                  <option value="医師">医師</option>
+                  <option value="看護師">看護師</option>
+                  <option value="クラーク">クラーク</option>
+                  <option value="放射線科">放射線科</option>
+                  <option value="リハビリ">リハビリ</option>
+                  <option value="リハ助手">リハ助手</option>
+                  <option value="その他">その他</option>
+                </select>
+              </div>
+
+              {/* 職員選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  職員を選択
+                </label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">
+                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
+                  </option>
+                  {employees
+                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
+                    .map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} ({employee.department || '部署未設定'})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* 期間タイプ選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  期間タイプ
+                </label>
+                <select
+                  value={periodType}
+                  onChange={(e) => setPeriodType(e.target.value as 'monthly' | 'yearly')}
+                  className="input-field"
+                >
+                  <option value="monthly">15日締め月次</option>
+                  <option value="yearly">年間</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    年
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    className="input-field"
+                  >
+                    {years.map((year) => (
+                      <option key={year} value={year}>
+                        {year}年
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {periodType === 'monthly' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      月
+                    </label>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                      className="input-field"
+                    >
+                      {months.map((month) => (
+                        <option key={month} value={month}>
+                          {month}月
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="w-full btn-primary flex items-center justify-center gap-2"
+              >
+                {exporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>処理中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📊</span>
+                    <span>Excelでダウンロード</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+                ※ Excel形式（.xlsx）でダウンロードされます
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* 部署選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  部署でフィルター
+                </label>
+                <select
+                  value={selectedDepartment}
+                  onChange={(e) => {
+                    setSelectedDepartment(e.target.value);
+                    setSelectedEmployeeId(''); // 部署を変更したら職員選択をリセット
+                  }}
+                  className="input-field"
+                >
+                  <option value="">全部署</option>
+                  <option value="医師">医師</option>
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
