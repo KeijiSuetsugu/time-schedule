@@ -86,3 +86,32 @@ ALTER TABLE "Location" ALTER COLUMN "longitude" TYPE DECIMAL(11, 8) USING longit
 ALTER TABLE "Location" ALTER COLUMN "latitude" TYPE DECIMAL(10, 8) USING latitude::numeric;
 ALTER TABLE "Location" ALTER COLUMN "longitude" TYPE DECIMAL(11, 8) USING longitude::numeric;
 
+
+-- USING句を使用して既存データを変換
+ALTER TABLE "Location" ALTER COLUMN "latitude" TYPE DECIMAL(10, 8) USING latitude::numeric;
+ALTER TABLE "Location" ALTER COLUMN "longitude" TYPE DECIMAL(11, 8) USING longitude::numeric;
+
+-- USING句を使用して既存データを変換
+ALTER TABLE "Location" ALTER COLUMN "latitude" TYPE DECIMAL(10, 8) USING latitude::numeric;
+ALTER TABLE "Location" ALTER COLUMN "longitude" TYPE DECIMAL(11, 8) USING longitude::numeric;
+
+-- USING句を使用して既存データを変換
+ALTER TABLE "Location" ALTER COLUMN "latitude" TYPE DECIMAL(10, 8) USING latitude::numeric;
+ALTER TABLE "Location" ALTER COLUMN "longitude" TYPE DECIMAL(11, 8) USING longitude::numeric;
+
+-- USING句を使用して既存データを変換
+ALTER TABLE "Location" ALTER COLUMN "latitude" TYPE DECIMAL(10, 8) USING latitude::numeric;
+ALTER TABLE "Location" ALTER COLUMN "longitude" TYPE DECIMAL(11, 8) USING longitude::numeric;
+
+-- USING句を使用して既存データを変換
+ALTER TABLE "Location" ALTER COLUMN "latitude" TYPE DECIMAL(10, 8) USING latitude::numeric;
+ALTER TABLE "Location" ALTER COLUMN "longitude" TYPE DECIMAL(11, 8) USING longitude::numeric;
+
+-- USING句を使用して既存データを変換
+ALTER TABLE "Location" ALTER COLUMN "latitude" TYPE DECIMAL(10, 8) USING latitude::numeric;
+ALTER TABLE "Location" ALTER COLUMN "longitude" TYPE DECIMAL(11, 8) USING longitude::numeric;
+
+-- USING句を使用して既存データを変換
+ALTER TABLE "Location" ALTER COLUMN "latitude" TYPE DECIMAL(10, 8) USING latitude::numeric;
+ALTER TABLE "Location" ALTER COLUMN "longitude" TYPE DECIMAL(11, 8) USING longitude::numeric;
+

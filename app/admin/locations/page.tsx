@@ -517,3 +517,9 @@ export default function AdminLocationsPage() {
     </div>
   );
 }
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={formData.latitude}
+                    onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+}
