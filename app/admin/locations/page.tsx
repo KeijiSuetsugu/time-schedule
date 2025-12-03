@@ -522,4 +522,3 @@ export default function AdminLocationsPage() {
                     inputMode="decimal"
                     value={formData.latitude}
                     onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-}
