@@ -290,27 +290,3 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
-
-      return NextResponse.json(
-        { error: '認証が必要です' },
-        { status: 401 }
-      );
-    }
-
-    // 管理者権限チェック
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json(
-        { error: '管理者権限が必要です' },
-        { status: 403 }
-      );
-    }
-
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json(
