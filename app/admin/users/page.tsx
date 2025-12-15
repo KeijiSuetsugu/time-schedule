@@ -9,10 +9,7 @@ interface User {
   name: string;
   role: string;
   department: string | null;
-<<<<<<< HEAD
-=======
   managedDepartment: string | null;
->>>>>>> 526c403 (fix: DepartmentManagerインターフェースを追加)
   createdAt: string;
 }
 
@@ -100,8 +97,6 @@ export default function AdminUsersPage() {
     } catch (error: any) {
       setError(error.message);
       setTimeout(() => setError(''), 3000);
-<<<<<<< HEAD
-=======
     }
   };
 
@@ -128,7 +123,6 @@ export default function AdminUsersPage() {
     } catch (error: any) {
       setError(error.message);
       setTimeout(() => setError(''), 3000);
->>>>>>> 526c403 (fix: DepartmentManagerインターフェースを追加)
     }
   };
 
@@ -220,22 +214,6 @@ export default function AdminUsersPage() {
           ) : (
             <div className="space-y-3">
               {admins.map((user) => (
-<<<<<<< HEAD
-                <div key={user.id} className="p-4 bg-purple-50 rounded-lg flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold text-gray-900">{user.name}</p>
-                    <p className="text-sm text-gray-600">{user.email}</p>
-                    {user.department && (
-                      <p className="text-xs text-gray-500">{user.department}</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleToggleRole(user.id, user.role)}
-                    className="px-3 py-1 rounded text-sm bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                  >
-                    スタッフに変更
-                  </button>
-=======
                 <div key={user.id} className="p-4 bg-purple-50 rounded-lg">
                   <div className="flex justify-between items-start mb-2">
                     <div>
@@ -274,7 +252,6 @@ export default function AdminUsersPage() {
                       ))}
                     </select>
                   </div>
->>>>>>> 526c403 (fix: DepartmentManagerインターフェースを追加)
                 </div>
               ))}
             </div>
