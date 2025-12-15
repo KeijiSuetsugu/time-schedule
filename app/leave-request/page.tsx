@@ -25,6 +25,13 @@ interface LeaveRequest {
   createdAt: string;
 }
 
+interface DepartmentManager {
+  id: string;
+  name: string;
+  email: string;
+  managedDepartment: string | null;
+}
+
 const REASON_OPTIONS = [
   '私事のため',
   '体調不良',
@@ -68,12 +75,11 @@ export default function LeaveRequestPage() {
   const [endTime, setEndTime] = useState('18:00');
   const [days, setDays] = useState(0);
   const [hours, setHours] = useState(0);
+  const [selectedManagerId, setSelectedManagerId] = useState('');
+  const [managers, setManagers] = useState<DepartmentManager[]>([]);
 
   // 過去の申請履歴
   const [myRequests, setMyRequests] = useState<LeaveRequest[]>([]);
-  
-  // 今日の日付を取得（YYYY-MM-DD形式）
-  const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -90,7 +96,29 @@ export default function LeaveRequestPage() {
     setEmployeeName(userData.name || '');
 
     loadMyRequests(token);
+    loadAllManagers(token);
   }, [router]);
+
+  const loadAllManagers = async (token: string) => {
+    try {
+      // 部署パラメータを指定せずに全管理者を取得
+      const response = await fetch('/api/department-managers', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setManagers(data.managers || []);
+        if (data.managers && data.managers.length > 0 && !selectedManagerId) {
+          setSelectedManagerId(data.managers[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('管理者取得エラー:', error);
+    }
+  };
 
   // 日数・時間数は手動入力
 
@@ -132,6 +160,11 @@ export default function LeaveRequestPage() {
       return;
     }
 
+    if (!selectedManagerId) {
+      alert('承認者を選択してください');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -151,6 +184,7 @@ export default function LeaveRequestPage() {
           endDate: `${endDate}T${endTime}`,
           days,
           hours,
+          assignedDepartmentManagerId: selectedManagerId,
         }),
       });
 
@@ -264,6 +298,7 @@ export default function LeaveRequestPage() {
                 required
               >
                 <option value="">選択してください</option>
+                <option value="医師">医師</option>
                 <option value="看護師">看護師</option>
                 <option value="クラーク">クラーク</option>
                 <option value="放射線科">放射線科</option>
@@ -327,7 +362,6 @@ export default function LeaveRequestPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  min={today}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
@@ -356,7 +390,6 @@ export default function LeaveRequestPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  min={today}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
@@ -407,6 +440,33 @@ export default function LeaveRequestPage() {
                   required
                 />
               </div>
+            </div>
+
+            {/* 申請先（各部署の管理者） */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                申請先（各部署の管理者）
+              </label>
+              {managers.length === 0 ? (
+                <p className="text-sm text-gray-500">管理者を読み込み中...</p>
+              ) : (
+                <select
+                  value={selectedManagerId}
+                  onChange={(e) => setSelectedManagerId(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">選択してください</option>
+                  {managers.map((manager) => (
+                    <option key={manager.id} value={manager.id}>
+                      {manager.name}
+                      {manager.managedDepartment 
+                        ? ` - ${manager.managedDepartment}管理者` 
+                        : ' - 全管理者（全部署を管理）'}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <button

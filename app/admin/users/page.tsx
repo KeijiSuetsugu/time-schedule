@@ -9,8 +9,22 @@ interface User {
   name: string;
   role: string;
   department: string | null;
+<<<<<<< HEAD
+=======
+  managedDepartment: string | null;
+>>>>>>> 526c403 (fix: DepartmentManagerインターフェースを追加)
   createdAt: string;
 }
+
+const DEPARTMENT_OPTIONS = [
+  '医師',
+  '看護師',
+  'クラーク',
+  '放射線科',
+  'リハビリ',
+  'リハ助手',
+  'その他',
+];
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -86,6 +100,35 @@ export default function AdminUsersPage() {
     } catch (error: any) {
       setError(error.message);
       setTimeout(() => setError(''), 3000);
+<<<<<<< HEAD
+=======
+    }
+  };
+
+  const handleSetManagedDepartment = async (userId: string, managedDepartment: string | null) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId, managedDepartment }),
+      });
+
+      if (response.ok) {
+        setSuccess('部署管理者設定を更新しました');
+        await loadUsers();
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || '更新に失敗しました');
+      }
+    } catch (error: any) {
+      setError(error.message);
+      setTimeout(() => setError(''), 3000);
+>>>>>>> 526c403 (fix: DepartmentManagerインターフェースを追加)
     }
   };
 
@@ -177,6 +220,7 @@ export default function AdminUsersPage() {
           ) : (
             <div className="space-y-3">
               {admins.map((user) => (
+<<<<<<< HEAD
                 <div key={user.id} className="p-4 bg-purple-50 rounded-lg flex justify-between items-center">
                   <div>
                     <p className="font-semibold text-gray-900">{user.name}</p>
@@ -191,6 +235,46 @@ export default function AdminUsersPage() {
                   >
                     スタッフに変更
                   </button>
+=======
+                <div key={user.id} className="p-4 bg-purple-50 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="font-semibold text-gray-900">{user.name}</p>
+                      <p className="text-sm text-gray-600">{user.email}</p>
+                      {user.department && (
+                        <p className="text-xs text-gray-500">所属: {user.department}</p>
+                      )}
+                      {user.managedDepartment ? (
+                        <p className="text-xs text-blue-600">管理部署: {user.managedDepartment}</p>
+                      ) : (
+                        <p className="text-xs text-gray-500">全管理者</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleToggleRole(user.id, user.role)}
+                      className="px-3 py-1 rounded text-sm bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                    >
+                      スタッフに変更
+                    </button>
+                  </div>
+                  <div className="mt-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      管理部署設定
+                    </label>
+                    <select
+                      value={user.managedDepartment || ''}
+                      onChange={(e) => handleSetManagedDepartment(user.id, e.target.value || null)}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">全管理者（全部署を管理）</option>
+                      {DEPARTMENT_OPTIONS.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}管理者
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+>>>>>>> 526c403 (fix: DepartmentManagerインターフェースを追加)
                 </div>
               ))}
             </div>

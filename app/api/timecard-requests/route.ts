@@ -6,11 +6,30 @@ import { verifyToken } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+// 部署管理者を取得するヘルパー関数
+async function getDepartmentManager(department: string | null): Promise<string | null> {
+  if (!department) {
+    return null;
+  }
+
+  // その部署を管理している管理者を検索
+  const manager = await prisma.user.findFirst({
+    where: {
+      role: 'admin',
+      managedDepartment: department,
+    },
+    select: { id: true },
+  });
+
+  return manager?.id || null;
+}
+
 // 打刻申請作成のスキーマ
 const createRequestSchema = z.object({
   requestType: z.enum(['clock_in', 'clock_out']),
   requestedTime: z.string(), // ISO 8601形式
   reason: z.string().min(1, '理由を入力してください'),
+  assignedDepartmentManagerId: z.string().optional(),
 });
 
 // 打刻申請の承認/却下スキーマ
@@ -41,11 +60,36 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'ユーザーが見つかりません' }, { status: 404 });
     }
 
-    // 管理者の場合は全ての申請を取得、職員の場合は自分の申請のみ
+    // 申請一覧の取得条件を決定
+    let whereCondition: any = {};
+    
+    if (user.role === 'admin') {
+      // 全管理者（managedDepartmentがnull）の場合は全ての申請を取得
+      // 部署管理者の場合は自分の部署の申請のみを取得
+      if (user.managedDepartment) {
+        // 部署管理者の場合、自分の部署の申請のみ
+        whereCondition = {
+          assignedDepartmentManagerId: user.id,
+        };
+      }
+      // managedDepartmentがnullの場合は全申請を取得（whereConditionは空のまま）
+    } else {
+      // 職員の場合は自分の申請のみ
+      whereCondition = { userId: user.id };
+    }
+
     const requests = await prisma.timeCardRequest.findMany({
-      where: user.role === 'admin' ? {} : { userId: user.id },
+      where: whereCondition,
       include: {
         user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            department: true,
+          },
+        },
+        assignedDepartmentManager: {
           select: {
             id: true,
             name: true,
@@ -118,6 +162,25 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: '申請が見つかりません' }, { status: 404 });
       }
 
+      // 部署管理者の場合、自分の部署の申請のみ承認可能
+      if (user.managedDepartment) {
+        // 申請が自分の部署の管理者に割り当てられているか確認
+        if (timeCardRequest.assignedDepartmentManagerId !== user.id) {
+          return NextResponse.json(
+            { error: 'この申請を承認する権限がありません' },
+            { status: 403 }
+          );
+        }
+
+        // 申請者の部署が自分の管理部署と一致するか確認
+        if (timeCardRequest.user.department !== user.managedDepartment) {
+          return NextResponse.json(
+            { error: 'この申請はあなたの部署の申請ではありません' },
+            { status: 403 }
+          );
+        }
+      }
+
       if (timeCardRequest.status !== 'pending') {
         return NextResponse.json({ error: 'この申請は既に処理されています' }, { status: 400 });
       }
@@ -174,7 +237,29 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const { requestType, requestedTime, reason } = validation.data;
+      const { requestType, requestedTime, reason, assignedDepartmentManagerId } = validation.data;
+
+      // 部署管理者が指定されている場合、その管理者が存在し、管理者権限を持っているか確認
+      if (assignedDepartmentManagerId) {
+        const manager = await prisma.user.findUnique({
+          where: { id: assignedDepartmentManagerId },
+        });
+
+        if (!manager || manager.role !== 'admin') {
+          return NextResponse.json(
+            { error: '指定された管理者が見つかりません' },
+            { status: 400 }
+          );
+        }
+
+        // ユーザーの部署と管理者の管理部署が一致するか確認（全管理者の場合はスキップ）
+        if (manager.managedDepartment && user.department !== manager.managedDepartment) {
+          return NextResponse.json(
+            { error: '指定された管理者はあなたの部署を管理していません' },
+            { status: 400 }
+          );
+        }
+      }
 
       const newRequest = await prisma.timeCardRequest.create({
         data: {
@@ -182,6 +267,7 @@ export async function POST(request: NextRequest) {
           requestType,
           requestedTime: new Date(requestedTime),
           reason,
+          assignedDepartmentManagerId: assignedDepartmentManagerId || null,
         },
         include: {
           user: {

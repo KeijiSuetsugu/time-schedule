@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // 全ユーザー一覧を取得（管理者のみ）
 export async function GET(request: NextRequest) {
   try {
@@ -32,6 +35,7 @@ export async function GET(request: NextRequest) {
         name: true,
         department: true,
         role: true,
+        managedDepartment: true,
         createdAt: true,
       },
       orderBy: [
@@ -50,7 +54,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// ユーザーの役割を更新（管理者のみ）
+// ユーザーの役割と部署管理者設定を更新（管理者のみ）
 export async function PATCH(request: NextRequest) {
   try {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
@@ -73,51 +77,60 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId, role } = body;
+    const { userId, role, managedDepartment } = body;
 
-    if (!userId || !role) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'ユーザーIDと役割が必要です' },
-        { status: 400 }
-      );
-    }
-
-    if (role !== 'admin' && role !== 'staff') {
-      return NextResponse.json(
-        { error: '役割は "admin" または "staff" である必要があります' },
+        { error: 'ユーザーIDが必要です' },
         { status: 400 }
       );
     }
 
     // 自分自身の権限を変更しようとしていないかチェック
-    if (userId === decoded.userId) {
+    if (userId === decoded.userId && role && role !== 'admin') {
       return NextResponse.json(
         { error: '自分自身の管理者権限は変更できません' },
         { status: 400 }
       );
     }
 
-    // ユーザーの役割を更新
+    // 更新データを構築
+    const updateData: any = {};
+    if (role !== undefined) {
+      if (role !== 'admin' && role !== 'employee') {
+        return NextResponse.json(
+          { error: '役割は "admin" または "employee" である必要があります' },
+          { status: 400 }
+        );
+      }
+      updateData.role = role;
+    }
+    
+    if (managedDepartment !== undefined) {
+      // 部署管理者設定（nullの場合は全管理者、部署名の場合はその部署の管理者）
+      updateData.managedDepartment = managedDepartment === '' ? null : managedDepartment;
+    }
+
+    // ユーザーを更新
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { role },
+      data: updateData,
       select: {
         id: true,
         email: true,
         name: true,
         department: true,
         role: true,
+        managedDepartment: true,
       },
     });
 
     return NextResponse.json({
-      message: role === 'admin' 
-        ? `${updatedUser.name}を管理者に設定しました` 
-        : `${updatedUser.name}の管理者権限を削除しました`,
+      message: 'ユーザー情報を更新しました',
       user: updatedUser,
     });
   } catch (error: any) {
-    console.error('ユーザー役割更新エラー:', error);
+    console.error('ユーザー更新エラー:', error);
     
     if (error.code === 'P2025') {
       return NextResponse.json(

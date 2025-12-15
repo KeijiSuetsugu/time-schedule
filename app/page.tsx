@@ -123,6 +123,7 @@ export default function LoginPage() {
                     required
                   >
                     <option value="">選択してください</option>
+                    <option value="医師">医師</option>
                     <option value="看護師">看護師</option>
                     <option value="クラーク">クラーク</option>
                     <option value="放射線科">放射線科</option>

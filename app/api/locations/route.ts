@@ -3,52 +3,57 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getUserIdFromRequest } from '@/lib/auth';
 import { rateLimitMiddleware } from '@/lib/rateLimit';
-import { Decimal } from '@prisma/client/runtime/library';
 
 // 動的レンダリングを強制
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+const decimalStringSchema = z
+  .union([z.string(), z.number()])
+  .transform((value, ctx) => {
+    const strValue = typeof value === 'number' ? value.toString() : value.trim();
+    if (!strValue) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '数値を入力してください',
+      });
+      return z.NEVER;
+    }
+
+    const numValue = Number(strValue);
+    if (Number.isNaN(numValue)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '数値として認識できません',
+      });
+      return z.NEVER;
+    }
+
+    return {
+      string: strValue,
+      number: numValue,
+    };
+  });
+
 const locationSchema = z.object({
   name: z.string().min(1),
-  latitude: z.union([z.number(), z.string()]).transform((val) => {
-    const num = typeof val === 'string' ? parseFloat(val) : val;
-    if (isNaN(num) || num < -90 || num > 90) {
-      throw new Error('緯度は-90から90の範囲で指定してください');
-    }
-    return new Decimal(val.toString());
-  }),
-  longitude: z.union([z.number(), z.string()]).transform((val) => {
-    const num = typeof val === 'string' ? parseFloat(val) : val;
-    if (isNaN(num) || num < -180 || num > 180) {
-      throw new Error('経度は-180から180の範囲で指定してください');
-    }
-    return new Decimal(val.toString());
-  }),
+  latitude: decimalStringSchema.refine(
+    ({ number }) => number >= -90 && number <= 90,
+    '緯度は-90〜90の範囲で入力してください'
+  ),
+  longitude: decimalStringSchema.refine(
+    ({ number }) => number >= -180 && number <= 180,
+    '経度は-180〜180の範囲で入力してください'
+  ),
   radius: z.number().min(10).max(10000).default(100), // 10m〜10km
   enabled: z.boolean().default(true),
 });
 
-const updateLocationSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1).optional(),
-  latitude: z.union([z.number(), z.string()]).transform((val) => {
-    const num = typeof val === 'string' ? parseFloat(val) : val;
-    if (isNaN(num) || num < -90 || num > 90) {
-      throw new Error('緯度は-90から90の範囲で指定してください');
-    }
-    return new Decimal(val.toString());
-  }).optional(),
-  longitude: z.union([z.number(), z.string()]).transform((val) => {
-    const num = typeof val === 'string' ? parseFloat(val) : val;
-    if (isNaN(num) || num < -180 || num > 180) {
-      throw new Error('経度は-180から180の範囲で指定してください');
-    }
-    return new Decimal(val.toString());
-  }).optional(),
-  radius: z.number().min(10).max(10000).optional(),
-  enabled: z.boolean().optional(),
-});
+const updateLocationSchema = locationSchema
+  .partial()
+  .extend({
+    id: z.string(),
+  });
 
 // 打刻場所の一覧取得
 export async function GET(request: NextRequest) {
@@ -71,14 +76,19 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Decimal型を文字列に変換してフロントエンドに送信
-    const locationsWithStringCoords = locations.map((loc) => ({
+    const serializedLocations = locations.map((loc) => ({
       ...loc,
-      latitude: loc.latitude.toString(),
-      longitude: loc.longitude.toString(),
+      latitude:
+        typeof loc.latitude === 'object' && loc.latitude !== null
+          ? loc.latitude.toString()
+          : loc.latitude,
+      longitude:
+        typeof loc.longitude === 'object' && loc.longitude !== null
+          ? loc.longitude.toString()
+          : loc.longitude,
     }));
 
-    return NextResponse.json({ locations: locationsWithStringCoords });
+    return NextResponse.json({ locations: serializedLocations });
   } catch (error) {
     console.error('Get locations error:', error);
     return NextResponse.json(
@@ -117,25 +127,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, latitude, longitude, radius, enabled } = locationSchema.parse(body);
+    const parsed = locationSchema.parse(body);
 
     const location = await prisma.location.create({
       data: {
-        name,
-        latitude,
-        longitude,
-        radius,
-        enabled: enabled ?? true,
+        name: parsed.name,
+        latitude: parsed.latitude.string,
+        longitude: parsed.longitude.string,
+        radius: parsed.radius,
+        enabled: parsed.enabled ?? true,
       },
     });
 
     return NextResponse.json({
       success: true,
-      location: {
-        ...location,
-        latitude: location.latitude.toString(),
-        longitude: location.longitude.toString(),
-      },
+      location,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -184,18 +190,36 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, ...updateData } = updateLocationSchema.parse(body);
 
+    const dataToUpdate: Record<string, unknown> = {};
+
+    if (typeof updateData.name === 'string') {
+      dataToUpdate.name = updateData.name;
+    }
+
+    if (updateData.latitude) {
+      dataToUpdate.latitude = updateData.latitude.string;
+    }
+
+    if (updateData.longitude) {
+      dataToUpdate.longitude = updateData.longitude.string;
+    }
+
+    if (typeof updateData.radius === 'number') {
+      dataToUpdate.radius = updateData.radius;
+    }
+
+    if (typeof updateData.enabled === 'boolean') {
+      dataToUpdate.enabled = updateData.enabled;
+    }
+
     const location = await prisma.location.update({
       where: { id },
-      data: updateData,
+      data: dataToUpdate,
     });
 
     return NextResponse.json({
       success: true,
-      location: {
-        ...location,
-        latitude: location.latitude.toString(),
-        longitude: location.longitude.toString(),
-      },
+      location,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

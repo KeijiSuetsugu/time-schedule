@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale/ja';
 
+export const dynamic = 'force-dynamic';
+
 interface User {
   id: string;
   email: string;
@@ -20,13 +22,6 @@ interface TimeCard {
   latitude?: number;
   longitude?: number;
   locationName?: string;
-}
-
-interface PendingCounts {
-  timecardRequests: number;
-  leaveRequests: number;
-  overtimeRequests: number;
-  total: number;
 }
 
 export default function DashboardPage() {
@@ -46,12 +41,6 @@ export default function DashboardPage() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [employees, setEmployees] = useState<Array<{ id: string; name: string; email: string; department?: string }>>([]);
   const [periodType, setPeriodType] = useState<'monthly' | 'yearly'>('monthly');
-  const [pendingCounts, setPendingCounts] = useState<PendingCounts>({
-    timecardRequests: 0,
-    leaveRequests: 0,
-    overtimeRequests: 0,
-    total: 0,
-  });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -67,37 +56,11 @@ export default function DashboardPage() {
     loadTimeCards();
     checkCurrentStatus();
     
-    // 管理者の場合は職員一覧と未承認件数を取得
+    // 管理者の場合は職員一覧を取得
     if (userData.role === 'admin') {
       loadEmployees();
-      loadPendingCounts();
     }
   }, [router]);
-
-  // 定期的に未承認件数を更新（管理者のみ）
-  useEffect(() => {
-    if (user?.role === 'admin') {
-      const interval = setInterval(() => {
-        loadPendingCounts();
-      }, 30000); // 30秒ごとに更新
-
-      return () => clearInterval(interval);
-    }
-  }, [user]);
-
-  // ページが表示された時に件数を更新（管理画面から戻った時用）
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user?.role === 'admin') {
-        loadPendingCounts();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user]);
 
   const loadEmployees = async () => {
     try {
@@ -114,24 +77,6 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Load employees error:', error);
-    }
-  };
-
-  const loadPendingCounts = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/pending-counts', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPendingCounts(data);
-      }
-    } catch (error) {
-      console.error('Load pending counts error:', error);
     }
   };
 
@@ -232,28 +177,12 @@ export default function DashboardPage() {
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || `サーバーエラー (${response.status})`;
-          
-          // デバッグ情報をコンソールに出力
-          if (errorData.debug) {
-            console.log('=== 打刻エラー詳細 ===');
-            console.log('あなたの位置:', errorData.debug.yourLocation);
-            console.log('各場所との距離:', errorData.debug.distances);
-          }
-          
           // 位置情報エラーの詳細を表示
           if (errorData.allowedLocations && errorData.allowedLocations.length > 0) {
             const locationsInfo = errorData.allowedLocations
               .map((loc: any) => `${loc.name} (半径${loc.radius}m)`)
               .join('\n');
             errorMessage = `${errorMessage}\n\n許可された場所:\n${locationsInfo}`;
-            
-            // デバッグ情報を追加
-            if (errorData.debug && errorData.debug.distances) {
-              const distancesInfo = errorData.debug.distances
-                .map((d: any) => `${d.name}: ${d.distance}m (範囲: ${d.radius}m) ${d.withinRange ? '✓' : '✗'}`)
-                .join('\n');
-              errorMessage = `${errorMessage}\n\n距離の詳細:\n${distancesInfo}\n\nあなたの位置: 緯度 ${errorData.debug.yourLocation.latitude.toFixed(6)}, 経度 ${errorData.debug.yourLocation.longitude.toFixed(6)}`;
-            }
           }
         } catch {
           errorMessage = `サーバーエラー (${response.status})`;
@@ -412,12 +341,6 @@ export default function DashboardPage() {
                 場所設定
               </button>
             )}
-            <button
-              onClick={() => router.push('/profile')}
-              className="text-sm text-blue-600 hover:text-blue-700 px-3 py-1 rounded font-semibold"
-            >
-              ⚙️ 設定
-            </button>
             <button
               onClick={handleLogout}
               className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1 rounded"
@@ -589,54 +512,19 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* プロフィール設定 */}
-        <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">⚙️ プロフィール設定</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            メールアドレスやパスワードを変更できます。
-          </p>
-          <button
-            onClick={() => router.push('/profile')}
-            className="w-full bg-gradient-to-r from-gray-600 to-gray-700 text-white py-3 rounded-lg font-semibold hover:from-gray-700 hover:to-gray-800 transition-all shadow-lg"
-          >
-            設定を変更する
-          </button>
-        </div>
-
         {/* 管理者用：申請管理 */}
         {user?.role === 'admin' && (
           <>
-            <div className="card">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">👥 ユーザー管理</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                管理者権限の付与・削除を行えます。
-              </p>
-              <button
-                onClick={() => router.push('/admin/users')}
-                className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 transition-all shadow-lg hover:shadow-orange-500/50"
-              >
-                ユーザーを管理する
-              </button>
-            </div>
-
             <div className="card">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">打刻申請管理</h2>
               <p className="text-sm text-gray-600 mb-4">
                 職員からの打刻漏れ申請を確認・承認できます。
               </p>
               <button
-                onClick={() => {
-                  router.push('/admin/timecard-requests');
-                  loadPendingCounts(); // 画面遷移後に件数を更新
-                }}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-cyan-500/50 relative"
+                onClick={() => router.push('/admin/timecard-requests')}
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-cyan-500/50"
               >
                 申請を管理する
-                {pendingCounts.timecardRequests > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg">
-                    {pendingCounts.timecardRequests}
-                  </span>
-                )}
             </button>
           </div>
 
@@ -646,18 +534,10 @@ export default function DashboardPage() {
               職員からの有給申請を確認・承認できます。
             </p>
             <button
-              onClick={() => {
-                router.push('/admin/leave-requests');
-                loadPendingCounts(); // 画面遷移後に件数を更新
-              }}
-              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-pink-500/50 relative"
+              onClick={() => router.push('/admin/leave-requests')}
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-pink-500/50"
             >
               有給申請を管理する
-              {pendingCounts.leaveRequests > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg">
-                  {pendingCounts.leaveRequests}
-                </span>
-              )}
             </button>
           </div>
 
@@ -667,18 +547,10 @@ export default function DashboardPage() {
               職員からの時間外業務届を確認・承認できます。
             </p>
             <button
-              onClick={() => {
-                router.push('/admin/overtime-requests');
-                loadPendingCounts(); // 画面遷移後に件数を更新
-              }}
-              className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-purple-500/50 relative"
+              onClick={() => router.push('/admin/overtime-requests')}
+              className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-purple-500/50"
             >
               時間外業務届を管理する
-              {pendingCounts.overtimeRequests > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg">
-                  {pendingCounts.overtimeRequests}
-                </span>
-              )}
             </button>
           </div>
           </>
@@ -718,6 +590,7 @@ export default function DashboardPage() {
                 >
                   <option value="">全部署</option>
                   <option value="医師">医師</option>
+<<<<<<< HEAD
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
@@ -4231,6 +4104,8 @@ export default function DashboardPage() {
                 >
                   <option value="">全部署</option>
                   <option value="医師">医師</option>
+=======
+>>>>>>> 526c403 (fix: DepartmentManagerインターフェースを追加)
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>

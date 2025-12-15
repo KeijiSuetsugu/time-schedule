@@ -11,6 +11,7 @@ const createOvertimeRequestSchema = z.object({
   overtimeDate: z.string(), // YYYY-MM-DD形式
   startTime: z.string(), // HH:mm形式
   endTime: z.string(), // HH:mm形式
+  assignedDepartmentManagerId: z.string().optional(),
 });
 
 const reviewRequestSchema = z.object({
@@ -30,6 +31,24 @@ function getUserFromToken(request: NextRequest) {
   return decoded;
 }
 
+// 部署管理者を取得するヘルパー関数
+async function getDepartmentManager(department: string | null): Promise<string | null> {
+  if (!department) {
+    return null;
+  }
+
+  // その部署を管理している管理者を検索
+  const manager = await prisma.user.findFirst({
+    where: {
+      role: 'admin',
+      managedDepartment: department,
+    },
+    select: { id: true },
+  });
+
+  return manager?.id || null;
+}
+
 // GET: 時間外業務届の一覧を取得
 export async function GET(request: NextRequest) {
   try {
@@ -41,17 +60,29 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
-    // 管理者の場合は全ての申請を取得、職員の場合は自分の申請のみ
+    // 管理者の場合は自分の部署の申請のみ取得、職員の場合は自分の申請のみ
     const userInfo = await prisma.user.findUnique({
       where: { id: user.userId },
-      select: { role: true },
+      select: { role: true, managedDepartment: true },
     });
 
     if (!userInfo) {
       return NextResponse.json({ error: 'ユーザーが見つかりません' }, { status: 404 });
     }
 
-    const where: any = userInfo.role === 'admin' ? {} : { userId: user.userId };
+    const where: any = {};
+    
+    if (userInfo.role === 'admin') {
+      // 部署管理者の場合、自分の部署の申請のみ
+      if (userInfo.managedDepartment) {
+        where.assignedDepartmentManagerId = user.userId;
+      }
+      // 全管理者の場合は全ての申請（whereConditionは空のまま）
+    } else {
+      // 職員の場合は自分の申請のみ
+      where.userId = user.userId;
+    }
+
     if (status) {
       where.status = status;
     }
@@ -65,6 +96,13 @@ export async function GET(request: NextRequest) {
             name: true,
             email: true,
             department: true,
+          },
+        },
+        assignedDepartmentManager: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
           },
         },
       },
@@ -92,6 +130,33 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createOvertimeRequestSchema.parse(body);
 
+    // 部署管理者が指定されている場合、その管理者が存在し、管理者権限を持っているか確認
+    if (validatedData.assignedDepartmentManagerId) {
+      const manager = await prisma.user.findUnique({
+        where: { id: validatedData.assignedDepartmentManagerId },
+      });
+
+      if (!manager || manager.role !== 'admin') {
+        return NextResponse.json(
+          { error: '指定された管理者が見つかりません' },
+          { status: 400 }
+        );
+      }
+
+      // ユーザーの部署と管理者の管理部署が一致するか確認（全管理者の場合はスキップ）
+      const currentUser = await prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { department: true },
+      });
+
+      if (manager.managedDepartment && currentUser?.department !== manager.managedDepartment) {
+        return NextResponse.json(
+          { error: '指定された管理者はあなたの部署を管理していません' },
+          { status: 400 }
+        );
+      }
+    }
+
     // 日付と時間を組み合わせて日時を作成（日本時間としてUTCに保存）
     const overtimeDateStr = validatedData.overtimeDate.includes('T')
       ? validatedData.overtimeDate
@@ -111,6 +176,7 @@ export async function POST(request: NextRequest) {
         startTime: startTimeStr,
         endTime: endTimeStr,
         status: 'pending',
+        assignedDepartmentManagerId: validatedData.assignedDepartmentManagerId || null,
       },
       include: {
         user: {
@@ -151,7 +217,7 @@ export async function PATCH(request: NextRequest) {
     // 管理者権限チェック
     const userInfo = await prisma.user.findUnique({
       where: { id: user.userId },
-      select: { role: true },
+      select: { role: true, managedDepartment: true },
     });
 
     if (!userInfo || userInfo.role !== 'admin') {
@@ -164,10 +230,30 @@ export async function PATCH(request: NextRequest) {
     // 申請を取得
     const overtimeRequest = await prisma.overtimeRequest.findUnique({
       where: { id: validatedData.requestId },
+      include: { user: true },
     });
 
     if (!overtimeRequest) {
       return NextResponse.json({ error: '申請が見つかりません' }, { status: 404 });
+    }
+
+    // 部署管理者の場合、自分の部署の申請のみ承認可能
+    if (userInfo.managedDepartment) {
+      // 申請が自分の部署の管理者に割り当てられているか確認
+      if (overtimeRequest.assignedDepartmentManagerId !== user.userId) {
+        return NextResponse.json(
+          { error: 'この申請を承認する権限がありません' },
+          { status: 403 }
+        );
+      }
+
+      // 申請者の部署が自分の管理部署と一致するか確認
+      if (overtimeRequest.user.department !== userInfo.managedDepartment) {
+        return NextResponse.json(
+          { error: 'この申請はあなたの部署の申請ではありません' },
+          { status: 403 }
+        );
+      }
     }
 
     if (overtimeRequest.status !== 'pending') {

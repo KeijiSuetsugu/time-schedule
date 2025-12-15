@@ -14,6 +14,14 @@ interface TimeCardRequest {
   createdAt: string;
 }
 
+interface DepartmentManager {
+  id: string;
+  name: string;
+  email: string;
+  department: string | null;
+  managedDepartment: string | null;
+}
+
 export default function TimeCardRequestPage() {
   const router = useRouter();
   const [requestType, setRequestType] = useState<'clock_in' | 'clock_out'>('clock_in');
@@ -21,13 +29,42 @@ export default function TimeCardRequestPage() {
   const [requestedTime, setRequestedTime] = useState('');
   const [selectedReason, setSelectedReason] = useState('');
   const [customReason, setCustomReason] = useState('');
+  const [selectedManagerId, setSelectedManagerId] = useState('');
+  const [managers, setManagers] = useState<DepartmentManager[]>([]);
+  const [userDepartment, setUserDepartment] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [myRequests, setMyRequests] = useState<TimeCardRequest[]>([]);
 
   useEffect(() => {
     loadMyRequests();
+    loadAllManagers();
   }, []);
+
+  const loadAllManagers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      // 部署パラメータを指定せずに全管理者を取得
+      const response = await fetch('/api/department-managers', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setManagers(data.managers || []);
+        // デフォルトで最初の管理者を選択
+        if (data.managers && data.managers.length > 0 && !selectedManagerId) {
+          setSelectedManagerId(data.managers[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('管理者取得エラー:', error);
+    }
+  };
 
   const loadMyRequests = async () => {
     try {
@@ -72,6 +109,12 @@ export default function TimeCardRequestPage() {
         return;
       }
 
+      if (!selectedManagerId) {
+        setMessage('❌ 承認者を選択してください');
+        setLoading(false);
+        return;
+      }
+
       // 日付と時刻を結合してISO形式に変換
       const requestedDateTime = new Date(`${requestedDate}T${requestedTime}`);
 
@@ -85,6 +128,7 @@ export default function TimeCardRequestPage() {
           requestType,
           requestedTime: requestedDateTime.toISOString(),
           reason: finalReason,
+          assignedDepartmentManagerId: selectedManagerId,
         }),
       });
 
@@ -96,6 +140,7 @@ export default function TimeCardRequestPage() {
         setCustomReason('');
         setRequestedDate('');
         setRequestedTime('');
+        setSelectedManagerId(managers.length > 0 ? managers[0].id : '');
         loadMyRequests(); // 申請一覧を再読み込み
       } else {
         setMessage(`❌ ${data.error || '申請に失敗しました'}`);
@@ -233,6 +278,32 @@ export default function TimeCardRequestPage() {
                   placeholder="理由を入力してください"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                申請先（各部署の管理者）
+              </label>
+              {managers.length === 0 ? (
+                <p className="text-sm text-gray-500">管理者を読み込み中...</p>
+              ) : (
+                <select
+                  value={selectedManagerId}
+                  onChange={(e) => setSelectedManagerId(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">選択してください</option>
+                  {managers.map((manager) => (
+                    <option key={manager.id} value={manager.id}>
+                      {manager.name}
+                      {manager.managedDepartment 
+                        ? ` - ${manager.managedDepartment}管理者` 
+                        : ' - 全管理者（全部署を管理）'}
+                    </option>
+                  ))}
+                </select>
               )}
             </div>
 

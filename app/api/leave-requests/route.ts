@@ -8,6 +8,24 @@ export const runtime = 'nodejs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+// 部署管理者を取得するヘルパー関数
+async function getDepartmentManager(department: string | null): Promise<string | null> {
+  if (!department) {
+    return null;
+  }
+
+  // その部署を管理している管理者を検索
+  const manager = await prisma.user.findFirst({
+    where: {
+      role: 'admin',
+      managedDepartment: department,
+    },
+    select: { id: true },
+  });
+
+  return manager?.id || null;
+}
+
 // JWTトークンからユーザー情報を取得
 function getUserFromToken(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -35,6 +53,7 @@ const createLeaveRequestSchema = z.object({
   endDate: z.string(),
   days: z.number().min(0),
   hours: z.number().min(0),
+  assignedDepartmentManagerId: z.string().optional(),
 });
 
 // POST: 新しい有給申請を作成
@@ -58,6 +77,33 @@ export async function POST(request: NextRequest) {
       ? validatedData.endDate 
       : `${validatedData.endDate}:00.000Z`;
 
+    // 部署管理者が指定されている場合、その管理者が存在し、管理者権限を持っているか確認
+    if (validatedData.assignedDepartmentManagerId) {
+      const manager = await prisma.user.findUnique({
+        where: { id: validatedData.assignedDepartmentManagerId },
+      });
+
+      if (!manager || manager.role !== 'admin') {
+        return NextResponse.json(
+          { error: '指定された管理者が見つかりません' },
+          { status: 400 }
+        );
+      }
+
+      // ユーザーの部署と管理者の管理部署が一致するか確認（全管理者の場合はスキップ）
+      const applicantUser = await prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { department: true },
+      });
+
+      if (manager.managedDepartment && applicantUser?.department !== manager.managedDepartment) {
+        return NextResponse.json(
+          { error: '指定された管理者はあなたの部署を管理していません' },
+          { status: 400 }
+        );
+      }
+    }
+
     const leaveRequest = await prisma.leaveRequest.create({
       data: {
         userId: user.userId,
@@ -71,6 +117,7 @@ export async function POST(request: NextRequest) {
         days: validatedData.days,
         hours: validatedData.hours,
         status: 'pending',
+        assignedDepartmentManagerId: validatedData.assignedDepartmentManagerId || null,
       },
       include: {
         user: {
@@ -105,10 +152,27 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status'); // pending, approved, rejected, all
 
-    // 管理者の場合は全ての申請を取得、職員の場合は自分の申請のみ取得
+    // ユーザー情報を取得
+    const userInfo = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { role: true, managedDepartment: true },
+    });
+
+    if (!userInfo) {
+      return NextResponse.json({ error: 'ユーザーが見つかりません' }, { status: 404 });
+    }
+
+    // 申請一覧の取得条件を決定
     const where: any = {};
     
-    if (user.role !== 'admin') {
+    if (userInfo.role === 'admin') {
+      // 全管理者（managedDepartmentがnull）の場合は全ての申請を取得
+      // 部署管理者の場合は自分の部署の申請のみを取得
+      if (userInfo.managedDepartment) {
+        where.assignedDepartmentManagerId = user.userId;
+      }
+    } else {
+      // 職員の場合は自分の申請のみ
       where.userId = user.userId;
     }
 
@@ -125,6 +189,13 @@ export async function GET(request: NextRequest) {
             name: true,
             email: true,
             department: true,
+          },
+        },
+        assignedDepartmentManager: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
           },
         },
       },
@@ -148,7 +219,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
     }
 
-    if (user.role !== 'admin') {
+    // ユーザー情報を取得
+    const userInfo = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { role: true, managedDepartment: true },
+    });
+
+    if (!userInfo || userInfo.role !== 'admin') {
       return NextResponse.json({ error: '管理者権限が必要です' }, { status: 403 });
     }
 
@@ -161,10 +238,30 @@ export async function PATCH(request: NextRequest) {
 
     const leaveRequest = await prisma.leaveRequest.findUnique({
       where: { id },
+      include: { user: true },
     });
 
     if (!leaveRequest) {
       return NextResponse.json({ error: '有給申請が見つかりません' }, { status: 404 });
+    }
+
+    // 部署管理者の場合、自分の部署の申請のみ承認可能
+    if (userInfo.managedDepartment) {
+      // 申請が自分の部署の管理者に割り当てられているか確認
+      if (leaveRequest.assignedDepartmentManagerId !== user.userId) {
+        return NextResponse.json(
+          { error: 'この申請を承認する権限がありません' },
+          { status: 403 }
+        );
+      }
+
+      // 申請者の部署が自分の管理部署と一致するか確認
+      if (leaveRequest.user.department !== userInfo.managedDepartment) {
+        return NextResponse.json(
+          { error: 'この申請はあなたの部署の申請ではありません' },
+          { status: 403 }
+        );
+      }
     }
 
     if (leaveRequest.status !== 'pending') {

@@ -18,6 +18,7 @@ interface OvertimeRequest {
 
 // 部署オプション
 const DEPARTMENT_OPTIONS = [
+  '医師',
   '看護師',
   'クラーク',
   '放射線科',
@@ -35,6 +36,8 @@ export default function OvertimeRequestPage() {
   const [overtimeDate, setOvertimeDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [selectedManagerId, setSelectedManagerId] = useState('');
+  const [managers, setManagers] = useState<Array<{ id: string; name: string; email: string; department: string | null; managedDepartment: string | null }>>([]);
   const [myRequests, setMyRequests] = useState<OvertimeRequest[]>([]);
   const [showMyRequests, setShowMyRequests] = useState(false);
 
@@ -59,6 +62,7 @@ export default function OvertimeRequestPage() {
           if (data.user) {
             setDepartment(data.user.department || '');
             setEmployeeName(data.user.name || '');
+            loadAllManagers(token);
           }
         }
       } catch (error) {
@@ -68,6 +72,27 @@ export default function OvertimeRequestPage() {
 
     fetchUserInfo();
   }, [router]);
+
+  const loadAllManagers = async (token: string) => {
+    try {
+      // 部署パラメータを指定せずに全管理者を取得
+      const response = await fetch('/api/department-managers', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setManagers(data.managers || []);
+        if (data.managers && data.managers.length > 0 && !selectedManagerId) {
+          setSelectedManagerId(data.managers[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('管理者取得エラー:', error);
+    }
+  };
 
   // 自分の申請履歴を取得
   const fetchMyRequests = async () => {
@@ -102,6 +127,12 @@ export default function OvertimeRequestPage() {
       return;
     }
 
+    if (!selectedManagerId) {
+      alert('承認者を選択してください');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/overtime-requests', {
         method: 'POST',
@@ -116,6 +147,7 @@ export default function OvertimeRequestPage() {
           overtimeDate,
           startTime,
           endTime,
+          assignedDepartmentManagerId: selectedManagerId,
         }),
       });
 
@@ -293,6 +325,33 @@ export default function OvertimeRequestPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+            </div>
+
+            {/* 申請先（各部署の管理者） */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                申請先（各部署の管理者） <span className="text-red-500">*</span>
+              </label>
+              {managers.length === 0 ? (
+                <p className="text-sm text-gray-500">管理者を読み込み中...</p>
+              ) : (
+                <select
+                  value={selectedManagerId}
+                  onChange={(e) => setSelectedManagerId(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">選択してください</option>
+                  {managers.map((manager) => (
+                    <option key={manager.id} value={manager.id}>
+                      {manager.name}
+                      {manager.managedDepartment 
+                        ? ` - ${manager.managedDepartment}管理者` 
+                        : ' - 全管理者（全部署を管理）'}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* 送信ボタン */}

@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 interface Location {
   id: string;
   name: string;
-  latitude: string;
-  longitude: string;
+  latitude: string; // Decimal型を文字列として扱う（17桁対応）
+  longitude: string; // Decimal型を文字列として扱う（17桁対応）
   radius: number;
   enabled: boolean;
 }
@@ -66,6 +66,7 @@ export default function AdminLocationsPage() {
 
       if (response.ok) {
         const data = await response.json();
+        // 緯度・経度を確実に文字列として扱う（17桁対応）
         const mappedLocations: Location[] = (data.locations || []).map((loc: any) => ({
           ...loc,
           latitude: typeof loc.latitude === 'string' 
@@ -103,8 +104,8 @@ export default function AdminLocationsPage() {
         },
         body: JSON.stringify({
           name: formData.name,
-          latitude: formData.latitude.trim(),
-          longitude: formData.longitude.trim(),
+          latitude: formData.latitude.trim(), // 文字列のまま送信（17桁対応）
+          longitude: formData.longitude.trim(), // 文字列のまま送信（17桁対応）
           radius: parseFloat(formData.radius),
           enabled: true,
         }),
@@ -194,10 +195,12 @@ export default function AdminLocationsPage() {
 
   const handleSaveLocation = async (locationId: string) => {
     try {
+      // 文字列として取得（17桁対応）
       const latStr = editingData.latitude.trim();
       const lonStr = editingData.longitude.trim();
       const radiusStr = editingData.radius.trim();
       
+      // バリデーション（範囲チェックのみ数値変換）
       const radiusValue = parseFloat(radiusStr);
       const latValue = Number(latStr);
       const lonValue = Number(lonStr);
@@ -232,8 +235,8 @@ export default function AdminLocationsPage() {
         body: JSON.stringify({
           id: locationId,
           name: editingData.name.trim(),
-          latitude: latStr,
-          longitude: lonStr,
+          latitude: latStr,  // 文字列のまま送信（17桁対応）
+          longitude: lonStr, // 文字列のまま送信（17桁対応）
           radius: radiusValue,
         }),
       });
@@ -333,7 +336,7 @@ export default function AdminLocationsPage() {
                     inputMode="decimal"
                     value={formData.latitude}
                     onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                    className="input-field font-mono"
+                    className="input-field"
                     required
                     placeholder="例: 35.6812"
                   />
@@ -347,9 +350,9 @@ export default function AdminLocationsPage() {
                     inputMode="decimal"
                     value={formData.longitude}
                     onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                    className="input-field font-mono"
+                    className="input-field"
                     required
-                    placeholder="例: 130.70780362473587"
+                    placeholder="例: 139.7671"
                   />
                 </div>
               </div>
@@ -388,6 +391,7 @@ export default function AdminLocationsPage() {
                   className="p-4 bg-gray-50 rounded-lg"
                 >
                   {editingLocationId === location.id ? (
+                    // 編集モード
                     <div className="space-y-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -405,7 +409,7 @@ export default function AdminLocationsPage() {
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            緯度（17桁対応）
+                            緯度（18桁対応）
                           </label>
                           <input
                             type="text"
@@ -418,7 +422,7 @@ export default function AdminLocationsPage() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            経度（17桁対応）
+                            経度（18桁対応）
                           </label>
                           <input
                             type="text"
@@ -462,6 +466,7 @@ export default function AdminLocationsPage() {
                       </div>
                     </div>
                   ) : (
+                    // 表示モード
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
@@ -517,8 +522,3 @@ export default function AdminLocationsPage() {
     </div>
   );
 }
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={formData.latitude}
-                    onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
