@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale/ja';
 
+// Next.js dynamic rendering
 export const dynamic = 'force-dynamic';
 
 interface User {
@@ -590,7 +591,6 @@ export default function DashboardPage() {
                 >
                   <option value="">全部署</option>
                   <option value="医師">医師</option>
-<<<<<<< HEAD
                   <option value="看護師">看護師</option>
                   <option value="クラーク">クラーク</option>
                   <option value="放射線科">放射線科</option>
