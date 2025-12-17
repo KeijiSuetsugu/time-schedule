@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns';
 import { ja } from 'date-fns/locale/ja';
 
 // Next.js dynamic rendering
@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const [clockingIn, setClockingIn] = useState(false);
   const [timeCards, setTimeCards] = useState<TimeCard[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [calendarDate, setCalendarDate] = useState(new Date());
   const [currentStatus, setCurrentStatus] = useState<'in' | 'out' | null>(null);
   const [locationError, setLocationError] = useState<string>('');
   const [gettingLocation, setGettingLocation] = useState(false);
@@ -87,6 +88,35 @@ export default function DashboardPage() {
       console.error('Load pending counts error:', error);
     }
   };
+
+  // カレンダー用のデータを生成
+  const calendarData = useMemo(() => {
+    const start = startOfMonth(calendarDate);
+    const end = endOfMonth(calendarDate);
+    const days = eachDayOfInterval({ start, end });
+    
+    // 各日付の打刻データをマッピング
+    const dayMap: { [key: string]: { clockIn?: string; clockOut?: string } } = {};
+    
+    timeCards.forEach((tc) => {
+      const dateKey = format(new Date(tc.timestamp), 'yyyy-MM-dd');
+      if (!dayMap[dateKey]) {
+        dayMap[dateKey] = {};
+      }
+      const time = format(new Date(tc.timestamp), 'HH:mm');
+      if (tc.type === 'clock_in') {
+        // 最初の出勤時間を記録
+        if (!dayMap[dateKey].clockIn) {
+          dayMap[dateKey].clockIn = time;
+        }
+      } else {
+        // 最後の退勤時間を記録
+        dayMap[dateKey].clockOut = time;
+      }
+    });
+    
+    return { days, dayMap, startDay: getDay(start) };
+  }, [calendarDate, timeCards]);
 
   const loadEmployees = async () => {
     try {
@@ -452,7 +482,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* 履歴 */}
+        {/* 履歴 - カレンダー表示 */}
         <div className="card">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">打刻履歴</h2>
@@ -460,38 +490,95 @@ export default function DashboardPage() {
               onClick={() => setShowHistory(!showHistory)}
               className="text-sm text-primary-600 hover:text-primary-700"
             >
-              {showHistory ? '閉じる' : '詳細を見る'}
+              {showHistory ? '閉じる' : 'カレンダーを見る'}
             </button>
           </div>
 
           {showHistory && (
-            <div className="space-y-2">
-              {timeCards.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">打刻履歴がありません</p>
-              ) : (
-                timeCards.map((timeCard) => (
+            <div>
+              {/* 月の切り替え */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => setCalendarDate(subMonths(calendarDate, 1))}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <h3 className="text-lg font-semibold text-gray-800">
+                  {format(calendarDate, 'yyyy年M月', { locale: ja })}
+                </h3>
+                <button
+                  onClick={() => setCalendarDate(addMonths(calendarDate, 1))}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* 曜日ヘッダー */}
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {['日', '月', '火', '水', '木', '金', '土'].map((day, i) => (
                   <div
-                    key={timeCard.id}
-                    className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                    key={day}
+                    className={`text-center text-xs font-semibold py-1 ${
+                      i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-600'
+                    }`}
                   >
-                    <div>
-                      <span
-                        className={`inline-block px-2 py-1 rounded text-xs font-semibold mr-2 ${
-                          timeCard.type === 'clock_in'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              {/* カレンダー本体 */}
+              <div className="grid grid-cols-7 gap-1">
+                {/* 月初めの空白 */}
+                {Array.from({ length: calendarData.startDay }).map((_, i) => (
+                  <div key={`empty-${i}`} className="min-h-[60px]" />
+                ))}
+                
+                {/* 日付 */}
+                {calendarData.days.map((day) => {
+                  const dateKey = format(day, 'yyyy-MM-dd');
+                  const dayData = calendarData.dayMap[dateKey];
+                  const dayOfWeek = getDay(day);
+                  const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                  
+                  return (
+                    <div
+                      key={dateKey}
+                      className={`min-h-[60px] p-1 rounded-lg border ${
+                        isToday ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                      }`}
+                    >
+                      <div
+                        className={`text-xs font-semibold mb-1 ${
+                          dayOfWeek === 0 ? 'text-red-500' : dayOfWeek === 6 ? 'text-blue-500' : 'text-gray-700'
                         }`}
                       >
-                        {timeCard.type === 'clock_in' ? '出勤' : '退勤'}
-                      </span>
-                      <span className="text-sm text-gray-700">
-                        {format(new Date(timeCard.timestamp), 'MM/dd HH:mm', { locale: ja })}
-                        {timeCard.locationName && ` - ${timeCard.locationName}`}
-                      </span>
+                        {format(day, 'd')}
+                      </div>
+                      {dayData && (
+                        <div className="space-y-0.5">
+                          {dayData.clockIn && (
+                            <div className="text-[10px] bg-green-100 text-green-700 rounded px-1 truncate">
+                              出 {dayData.clockIn}
+                            </div>
+                          )}
+                          {dayData.clockOut && (
+                            <div className="text-[10px] bg-red-100 text-red-700 rounded px-1 truncate">
+                              退 {dayData.clockOut}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
-              )}
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
