@@ -42,6 +42,12 @@ export default function DashboardPage() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [employees, setEmployees] = useState<Array<{ id: string; name: string; email: string; department?: string }>>([]);
   const [periodType, setPeriodType] = useState<'monthly' | 'yearly'>('monthly');
+  const [pendingCounts, setPendingCounts] = useState<{
+    timeCardRequests: number;
+    leaveRequests: number;
+    overtimeRequests: number;
+    total: number;
+  } | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -57,11 +63,30 @@ export default function DashboardPage() {
     loadTimeCards();
     checkCurrentStatus();
     
-    // 管理者の場合は職員一覧を取得
+    // 管理者の場合は職員一覧と保留中の申請件数を取得
     if (userData.role === 'admin') {
       loadEmployees();
+      loadPendingCounts();
     }
   }, [router]);
+
+  const loadPendingCounts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/pending-counts', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPendingCounts(data);
+      }
+    } catch (error) {
+      console.error('Load pending counts error:', error);
+    }
+  };
 
   const loadEmployees = async () => {
     try {
@@ -516,8 +541,15 @@ export default function DashboardPage() {
         {/* 管理者用：申請管理 */}
         {user?.role === 'admin' && (
           <>
-            <div className="card">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">打刻申請管理</h2>
+            <div className="card relative">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-semibold text-gray-900">打刻申請管理</h2>
+                {pendingCounts && pendingCounts.timeCardRequests > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-sm font-bold text-white bg-red-500 rounded-full animate-pulse">
+                    {pendingCounts.timeCardRequests}
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-600 mb-4">
                 職員からの打刻漏れ申請を確認・承認できます。
               </p>
@@ -526,34 +558,48 @@ export default function DashboardPage() {
                 className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-cyan-500/50"
               >
                 申請を管理する
-            </button>
-          </div>
+              </button>
+            </div>
 
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">有給申請管理</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              職員からの有給申請を確認・承認できます。
-            </p>
-            <button
-              onClick={() => router.push('/admin/leave-requests')}
-              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-pink-500/50"
-            >
-              有給申請を管理する
-            </button>
-          </div>
+            <div className="card relative">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-semibold text-gray-900">有給申請管理</h2>
+                {pendingCounts && pendingCounts.leaveRequests > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-sm font-bold text-white bg-red-500 rounded-full animate-pulse">
+                    {pendingCounts.leaveRequests}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                職員からの有給申請を確認・承認できます。
+              </p>
+              <button
+                onClick={() => router.push('/admin/leave-requests')}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-pink-500/50"
+              >
+                有給申請を管理する
+              </button>
+            </div>
 
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">時間外業務届管理</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              職員からの時間外業務届を確認・承認できます。
-            </p>
-            <button
-              onClick={() => router.push('/admin/overtime-requests')}
-              className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-purple-500/50"
-            >
-              時間外業務届を管理する
-            </button>
-          </div>
+            <div className="card relative">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-semibold text-gray-900">時間外業務届管理</h2>
+                {pendingCounts && pendingCounts.overtimeRequests > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-sm font-bold text-white bg-red-500 rounded-full animate-pulse">
+                    {pendingCounts.overtimeRequests}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                職員からの時間外業務届を確認・承認できます。
+              </p>
+              <button
+                onClick={() => router.push('/admin/overtime-requests')}
+                className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-purple-500/50"
+              >
+                時間外業務届を管理する
+              </button>
+            </div>
           </>
         )}
 
