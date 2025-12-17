@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
           password: hashedPassword,
           name,
           department,
+          role: 'employee', // 新規登録は必ず「一般」として登録
         },
       });
 
