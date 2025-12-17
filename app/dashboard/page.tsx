@@ -767,9 +767,9 @@ export default function DashboardPage() {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
               <p className="text-sm text-blue-800">
                 <strong>📋 エクスポート方法:</strong><br/>
-                • <strong>全職員</strong>: 部署も職員も選択せずにダウンロード<br/>
-                • <strong>特定の部署</strong>: 部署のみ選択してダウンロード<br/>
-                • <strong>特定の職員</strong>: 職員を選択してダウンロード<br/>
+                • <strong>登録者全員</strong>: 「★ 登録者全員」を選択<br/>
+                • <strong>特定の部署</strong>: 部署を選択後「★ 登録者全員」<br/>
+                • <strong>個別の職員</strong>: 職員名を個別に選択<br/>
                 <br/>
                 ※ Excel形式（.xlsx）でダウンロードされます
               </p>
@@ -811,15 +811,17 @@ export default function DashboardPage() {
                   className="input-field"
                 >
                   <option value="">
-                    {selectedDepartment ? `${selectedDepartment}の全職員` : '全職員'}
+                    ★ 登録者全員（{selectedDepartment ? `${selectedDepartment}の全職員` : 'すべての職員'}）
                   </option>
-                  {employees
-                    .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
-                    .map((employee) => (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.name} ({employee.department || '部署未設定'})
-                      </option>
-                    ))}
+                  <optgroup label="── 個別に選択 ──">
+                    {employees
+                      .filter((employee) => !selectedDepartment || employee.department === selectedDepartment)
+                      .map((employee) => (
+                        <option key={employee.id} value={employee.id}>
+                          {employee.name} ({employee.department || '部署未設定'})
+                        </option>
+                      ))}
+                  </optgroup>
                 </select>
               </div>
 
