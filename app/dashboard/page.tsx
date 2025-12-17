@@ -541,64 +541,64 @@ export default function DashboardPage() {
         {/* 管理者用：申請管理 */}
         {user?.role === 'admin' && (
           <>
-            <div className="card relative">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold text-gray-900">打刻申請管理</h2>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">打刻申請管理</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                職員からの打刻漏れ申請を確認・承認できます。
+              </p>
+              <div className="relative inline-block w-full">
+                <button
+                  onClick={() => router.push('/admin/timecard-requests')}
+                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-cyan-500/50"
+                >
+                  申請を管理する
+                </button>
                 {pendingCounts && pendingCounts.timeCardRequests > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-sm font-bold text-white bg-red-500 rounded-full animate-pulse">
+                  <span className="absolute -top-2 -right-2 inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-sm font-bold text-white bg-red-500 rounded-full shadow-lg">
                     {pendingCounts.timeCardRequests}
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600 mb-4">
-                職員からの打刻漏れ申請を確認・承認できます。
-              </p>
-              <button
-                onClick={() => router.push('/admin/timecard-requests')}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-cyan-500/50"
-              >
-                申請を管理する
-              </button>
             </div>
 
-            <div className="card relative">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold text-gray-900">有給申請管理</h2>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">有給申請管理</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                職員からの有給申請を確認・承認できます。
+              </p>
+              <div className="relative inline-block w-full">
+                <button
+                  onClick={() => router.push('/admin/leave-requests')}
+                  className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-pink-500/50"
+                >
+                  有給申請を管理する
+                </button>
                 {pendingCounts && pendingCounts.leaveRequests > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-sm font-bold text-white bg-red-500 rounded-full animate-pulse">
+                  <span className="absolute -top-2 -right-2 inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-sm font-bold text-white bg-red-500 rounded-full shadow-lg">
                     {pendingCounts.leaveRequests}
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600 mb-4">
-                職員からの有給申請を確認・承認できます。
-              </p>
-              <button
-                onClick={() => router.push('/admin/leave-requests')}
-                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all shadow-lg hover:shadow-pink-500/50"
-              >
-                有給申請を管理する
-              </button>
             </div>
 
-            <div className="card relative">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold text-gray-900">時間外業務届管理</h2>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">時間外業務届管理</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                職員からの時間外業務届を確認・承認できます。
+              </p>
+              <div className="relative inline-block w-full">
+                <button
+                  onClick={() => router.push('/admin/overtime-requests')}
+                  className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-purple-500/50"
+                >
+                  時間外業務届を管理する
+                </button>
                 {pendingCounts && pendingCounts.overtimeRequests > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-sm font-bold text-white bg-red-500 rounded-full animate-pulse">
+                  <span className="absolute -top-2 -right-2 inline-flex items-center justify-center min-w-[24px] h-6 px-2 text-sm font-bold text-white bg-red-500 rounded-full shadow-lg">
                     {pendingCounts.overtimeRequests}
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600 mb-4">
-                職員からの時間外業務届を確認・承認できます。
-              </p>
-              <button
-                onClick={() => router.push('/admin/overtime-requests')}
-                className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-purple-500/50"
-              >
-                時間外業務届を管理する
-              </button>
             </div>
           </>
         )}
