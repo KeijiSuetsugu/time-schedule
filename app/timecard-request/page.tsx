@@ -39,6 +39,7 @@ export default function TimeCardRequestPage() {
   useEffect(() => {
     loadMyRequests();
     loadAllManagers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadAllManagers = async () => {

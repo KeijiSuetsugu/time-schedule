@@ -71,6 +71,7 @@ export default function OvertimeRequestPage() {
     };
 
     fetchUserInfo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const loadAllManagers = async (token: string) => {
