@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const [timeCards, setTimeCards] = useState<TimeCard[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [currentStatus, setCurrentStatus] = useState<'in' | 'out' | null>(null);
   const [locationError, setLocationError] = useState<string>('');
   const [gettingLocation, setGettingLocation] = useState(false);
@@ -117,6 +118,14 @@ export default function DashboardPage() {
     
     return { days, dayMap, startDay: getDay(start) };
   }, [calendarDate, timeCards]);
+
+  // 選択された日付の詳細データを取得
+  const selectedDateDetails = useMemo(() => {
+    if (!selectedDate) return [];
+    return timeCards
+      .filter((tc) => format(new Date(tc.timestamp), 'yyyy-MM-dd') === selectedDate)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }, [selectedDate, timeCards]);
 
   const loadEmployees = async () => {
     try {
@@ -546,12 +555,18 @@ export default function DashboardPage() {
                   const dayData = calendarData.dayMap[dateKey];
                   const dayOfWeek = getDay(day);
                   const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                  const isSelected = selectedDate === dateKey;
                   
                   return (
                     <div
                       key={dateKey}
-                      className={`min-h-[60px] p-1 rounded-lg border ${
-                        isToday ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                      onClick={() => setSelectedDate(isSelected ? null : dateKey)}
+                      className={`min-h-[60px] p-1 rounded-lg border cursor-pointer transition-all ${
+                        isSelected
+                          ? 'border-blue-500 bg-blue-100 ring-2 ring-blue-300'
+                          : isToday
+                          ? 'border-blue-500 bg-blue-50 hover:bg-blue-100'
+                          : 'border-gray-200 hover:bg-gray-50'
                       }`}
                     >
                       <div
@@ -579,6 +594,58 @@ export default function DashboardPage() {
                   );
                 })}
               </div>
+
+              {/* 選択した日付の詳細 */}
+              {selectedDate && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-semibold text-gray-800">
+                      {format(new Date(selectedDate), 'M月d日(E)', { locale: ja })}の打刻詳細
+                    </h4>
+                    <button
+                      onClick={() => setSelectedDate(null)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  {selectedDateDetails.length === 0 ? (
+                    <p className="text-gray-500 text-sm">この日の打刻記録はありません</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {selectedDateDetails.map((tc) => (
+                        <div
+                          key={tc.id}
+                          className="flex items-center justify-between p-2 bg-white rounded border"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                                tc.type === 'clock_in'
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-red-100 text-red-700'
+                              }`}
+                            >
+                              {tc.type === 'clock_in' ? '出勤' : '退勤'}
+                            </span>
+                            <span className="text-sm font-medium text-gray-800">
+                              {format(new Date(tc.timestamp), 'HH:mm:ss')}
+                            </span>
+                          </div>
+                          {tc.locationName && (
+                            <span className="text-xs text-gray-500">
+                              📍 {tc.locationName}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
