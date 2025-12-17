@@ -71,7 +71,7 @@ export default function AdminUsersPage() {
 
   const handleToggleRole = async (userId: string, currentRole: string) => {
     const newRole = currentRole === 'admin' ? 'employee' : 'admin';
-    const action = newRole === 'admin' ? '管理者に昇格' : 'スタッフに変更';
+    const action = newRole === 'admin' ? '管理者に昇格' : '一般に変更';
     
     if (!confirm(`このユーザーを${action}しますか？`)) return;
 
@@ -234,7 +234,7 @@ export default function AdminUsersPage() {
                 <span className="text-2xl">👤</span>
               </div>
               <div>
-                <p className="text-gray-600 text-sm">スタッフ</p>
+                <p className="text-gray-600 text-sm">一般</p>
                 <p className="text-3xl font-bold text-gray-800">{employees.length}</p>
               </div>
             </div>
@@ -263,12 +263,20 @@ export default function AdminUsersPage() {
                         <p className="text-xs text-gray-500">全管理者</p>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleToggleRole(user.id, user.role)}
-                      className="px-3 py-1 rounded text-sm bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                    >
-                      スタッフに変更
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleResetPassword(user.id, user.name)}
+                        className="px-3 py-1 rounded text-sm bg-blue-100 text-blue-800 hover:bg-blue-200"
+                      >
+                        🔑 パスワード
+                      </button>
+                      <button
+                        onClick={() => handleToggleRole(user.id, user.role)}
+                        className="px-3 py-1 rounded text-sm bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                      >
+                        一般に変更
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-2">
                     <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -293,11 +301,11 @@ export default function AdminUsersPage() {
           )}
         </div>
 
-        {/* スタッフ一覧 */}
+        {/* 一般ユーザー一覧 */}
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">👤 スタッフ一覧</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">👤 一般ユーザー一覧</h2>
           {employees.length === 0 ? (
-            <p className="text-gray-500">スタッフはいません</p>
+            <p className="text-gray-500">一般ユーザーはいません</p>
           ) : (
             <div className="space-y-3">
               {employees.map((user) => (
@@ -309,12 +317,20 @@ export default function AdminUsersPage() {
                       <p className="text-xs text-gray-500">{user.department}</p>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleToggleRole(user.id, user.role)}
-                    className="px-3 py-1 rounded text-sm bg-purple-100 text-purple-800 hover:bg-purple-200"
-                  >
-                    管理者に昇格
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleResetPassword(user.id, user.name)}
+                      className="px-3 py-1 rounded text-sm bg-blue-100 text-blue-800 hover:bg-blue-200"
+                    >
+                      🔑 パスワード
+                    </button>
+                    <button
+                      onClick={() => handleToggleRole(user.id, user.role)}
+                      className="px-3 py-1 rounded text-sm bg-purple-100 text-purple-800 hover:bg-purple-200"
+                    >
+                      管理者に昇格
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
