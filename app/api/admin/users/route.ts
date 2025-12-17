@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -77,7 +78,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId, role, managedDepartment } = body;
+    const { userId, role, managedDepartment, newPassword } = body;
 
     if (!userId) {
       return NextResponse.json(
@@ -109,6 +110,18 @@ export async function PATCH(request: NextRequest) {
     if (managedDepartment !== undefined) {
       // 部署管理者設定（nullの場合は全管理者、部署名の場合はその部署の管理者）
       updateData.managedDepartment = managedDepartment === '' ? null : managedDepartment;
+    }
+
+    // パスワードリセット
+    if (newPassword) {
+      if (newPassword.length < 6) {
+        return NextResponse.json(
+          { error: 'パスワードは6文字以上である必要があります' },
+          { status: 400 }
+        );
+      }
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      updateData.password = hashedPassword;
     }
 
     // ユーザーを更新

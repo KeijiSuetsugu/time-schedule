@@ -6,11 +6,15 @@ import { useRouter } from 'next/navigation';
 export default function LoginPage() {
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
+  const [isResetPassword, setIsResetPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [department, setDepartment] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -20,6 +24,56 @@ export default function LoginPage() {
       router.push('/dashboard');
     }
   }, [router]);
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (newPassword !== confirmPassword) {
+      setError('パスワードが一致しません');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('パスワードは6文字以上で入力してください');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'パスワードの再設定に失敗しました');
+      }
+
+      setSuccess('パスワードを再設定しました。新しいパスワードでログインしてください。');
+      setNewPassword('');
+      setConfirmPassword('');
+      
+      // 3秒後にログイン画面に戻る
+      setTimeout(() => {
+        setIsResetPassword(false);
+        setSuccess('');
+      }, 3000);
+    } catch (err: any) {
+      setError(err.message || 'エラーが発生しました');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +138,7 @@ export default function LoginPage() {
             タイムカードシステム
           </h1>
           <p className="text-center text-gray-600 mb-8">
-            {isLogin ? 'ログイン' : '新規登録'}
+            {isResetPassword ? 'パスワード再設定' : isLogin ? 'ログイン' : '新規登録'}
           </p>
 
           {error && (
@@ -93,7 +147,92 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              {success}
+            </div>
+          )}
+
+          {/* パスワード再設定フォーム */}
+          {isResetPassword ? (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <label htmlFor="reset-email" className="block text-sm font-medium text-gray-700 mb-1">
+                  登録済みメールアドレス
+                </label>
+                <input
+                  id="reset-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-field"
+                  required
+                  placeholder="example@company.com"
+                  autoComplete="email"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-1">
+                  新しいパスワード
+                </label>
+                <input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="input-field"
+                  required
+                  minLength={6}
+                  placeholder="6文字以上"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
+                  新しいパスワード（確認）
+                </label>
+                <input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="input-field"
+                  required
+                  minLength={6}
+                  placeholder="もう一度入力"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary w-full"
+              >
+                {loading ? '処理中...' : 'パスワードを再設定'}
+              </button>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsResetPassword(false);
+                    setError('');
+                    setSuccess('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                  }}
+                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                >
+                  ← ログインに戻る
+                </button>
+              </div>
+            </form>
+          ) : (
+            /* ログイン・新規登録フォーム */
+            <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <>
                 <div>
@@ -176,19 +315,35 @@ export default function LoginPage() {
               {loading ? '処理中...' : isLogin ? 'ログイン' : '登録'}
             </button>
           </form>
+          )}
 
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError('');
-              }}
-              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-            >
-              {isLogin ? '新規登録はこちら' : '既にアカウントをお持ちの方はこちら'}
-            </button>
-          </div>
+          {!isResetPassword && (
+            <div className="mt-6 text-center space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setError('');
+                }}
+                className="text-primary-600 hover:text-primary-700 text-sm font-medium block w-full"
+              >
+                {isLogin ? '新規登録はこちら' : '既にアカウントをお持ちの方はこちら'}
+              </button>
+              
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsResetPassword(true);
+                    setError('');
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-sm block w-full"
+                >
+                  パスワードを忘れた方はこちら
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -126,6 +126,41 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleResetPassword = async (userId: string, userName: string) => {
+    const newPassword = prompt(`${userName}さんの新しいパスワードを入力してください（6文字以上）:`);
+    
+    if (!newPassword) return;
+    
+    if (newPassword.length < 6) {
+      setError('パスワードは6文字以上で入力してください');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId, newPassword }),
+      });
+
+      if (response.ok) {
+        setSuccess(`${userName}さんのパスワードをリセットしました`);
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || 'パスワードリセットに失敗しました');
+      }
+    } catch (error: any) {
+      setError(error.message);
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
