@@ -632,7 +632,7 @@ export default function DashboardPage() {
                               {tc.type === 'clock_in' ? '出勤' : '退勤'}
                             </span>
                             <span className="text-sm font-medium text-gray-800">
-                              {format(new Date(tc.timestamp), 'HH:mm:ss')}
+                              {format(new Date(tc.timestamp), 'HH:mm')}
                             </span>
                           </div>
                           {tc.locationName && (
