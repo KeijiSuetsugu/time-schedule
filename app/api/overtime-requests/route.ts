@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH: 時間外業務届を承認/却下
+// PATCH: 時間外業務届を承認/却下/取り下げ
 export async function PATCH(request: NextRequest) {
   try {
     const user = getUserFromToken(request);
@@ -214,7 +214,50 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
     }
 
-    // 管理者権限チェック
+    const body = await request.json();
+
+    // 取り下げ処理（本人のみ、pendingのみ）
+    if (body.action === 'cancel') {
+      const { requestId } = body;
+      if (!requestId) {
+        return NextResponse.json({ error: '申請IDが必要です' }, { status: 400 });
+      }
+
+      const overtimeRequest = await prisma.overtimeRequest.findUnique({
+        where: { id: requestId },
+      });
+
+      if (!overtimeRequest) {
+        return NextResponse.json({ error: '申請が見つかりません' }, { status: 404 });
+      }
+
+      if (overtimeRequest.userId !== user.userId) {
+        return NextResponse.json({ error: '自分の申請のみ取り下げできます' }, { status: 403 });
+      }
+
+      if (overtimeRequest.status !== 'pending') {
+        return NextResponse.json({ error: '承認待ちの申請のみ取り下げできます' }, { status: 400 });
+      }
+
+      await prisma.$transaction([
+        prisma.overtimeRequest.update({
+          where: { id: requestId },
+          data: { status: 'cancelled', cancelledAt: new Date() },
+        }),
+        prisma.auditLog.create({
+          data: {
+            entityType: 'OvertimeRequest',
+            entityId: requestId,
+            action: 'cancelled',
+            performedBy: user.userId,
+          },
+        }),
+      ]);
+
+      return NextResponse.json({ message: '申請を取り下げました' });
+    }
+
+    // 承認・却下処理（管理者のみ）
     const userInfo = await prisma.user.findUnique({
       where: { id: user.userId },
       select: { role: true, managedDepartment: true },
@@ -224,7 +267,6 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: '管理者権限が必要です' }, { status: 403 });
     }
 
-    const body = await request.json();
     const validatedData = reviewRequestSchema.parse(body);
 
     // 申請を取得
@@ -263,26 +305,37 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // ステータスを更新
-    const updatedRequest = await prisma.overtimeRequest.update({
-      where: { id: validatedData.requestId },
-      data: {
-        status: validatedData.action === 'approve' ? 'approved' : 'rejected',
-        reviewedBy: user.userId,
-        reviewedAt: new Date(),
-        reviewComment: validatedData.comment,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            department: true,
+    // ステータスを更新（AuditLog と同時にトランザクション）
+    const [updatedRequest] = await prisma.$transaction([
+      prisma.overtimeRequest.update({
+        where: { id: validatedData.requestId },
+        data: {
+          status: validatedData.action === 'approve' ? 'approved' : 'rejected',
+          reviewedBy: user.userId,
+          reviewedAt: new Date(),
+          reviewComment: validatedData.comment,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              department: true,
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.auditLog.create({
+        data: {
+          entityType: 'OvertimeRequest',
+          entityId: validatedData.requestId,
+          action: validatedData.action === 'approve' ? 'approved' : 'rejected',
+          performedBy: user.userId,
+          detail: validatedData.comment ? JSON.stringify({ comment: validatedData.comment }) : null,
+        },
+      }),
+    ]);
 
     return NextResponse.json(updatedRequest);
   } catch (error) {

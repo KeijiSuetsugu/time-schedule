@@ -32,7 +32,7 @@ model User {
 model TimeCard {
   id          String   @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Restrict) // 労基法: ユーザー削除でも打刻記録を保護
   type        String   // "clock_in" or "clock_out"
   timestamp   DateTime @default(now())
   latitude    Float?
@@ -42,7 +42,7 @@ model TimeCard {
   locationId  String?  // 打刻した場所のID
   location    Location? @relation(fields: [locationId], references: [id])
   createdAt   DateTime @default(now())
-  
+
   @@index([userId])
   @@index([timestamp])
 }
@@ -54,10 +54,11 @@ model Location {
   longitude   Decimal  @db.Decimal(19, 15) // 経度（18桁対応: 整数4桁+小数15桁）
   radius      Float    @default(100) // 許可範囲（メートル）
   enabled     Boolean  @default(true) // 有効/無効
+  deletedAt   DateTime? // ソフトデリート用（労基法: 打刻場所情報の永久保存）
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   timecards   TimeCard[]
-  
+
   @@index([enabled])
 }
 
@@ -68,15 +69,16 @@ model TimeCardRequest {
   requestType     String   // "clock_in" or "clock_out"
   requestedTime   DateTime // 申請する打刻時刻
   reason          String   // 申請理由
-  status          String   @default("pending") // "pending", "approved", "rejected"
+  status          String   @default("pending") // "pending", "approved", "rejected", "cancelled"
   assignedDepartmentManagerId String? // 割り当てられた部署管理者のID
   assignedDepartmentManager   User?   @relation("AssignedTimeCardRequests", fields: [assignedDepartmentManagerId], references: [id])
   reviewedBy      String?  // 承認/却下した管理者のID
   reviewedAt      DateTime? // 承認/却下日時
   reviewComment   String?  // 管理者のコメント
+  cancelledAt     DateTime? // 取り下げ日時
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  
+
   @@index([userId])
   @@index([status])
   @@index([createdAt])
@@ -86,7 +88,7 @@ model TimeCardRequest {
 model LeaveRequest {
   id              String   @id @default(cuid())
   userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Restrict) // 労基法: 有給管理簿を保護
   leaveType       String   // "年次", "病気", "特別"
   absenceType     String   // "休暇", "欠勤"
   department      String   // 所属部署
@@ -96,15 +98,16 @@ model LeaveRequest {
   endDate         DateTime // 終了日時
   days            Float    // 日数
   hours           Float    // 時間数
-  status          String   @default("pending") // "pending", "approved", "rejected"
+  status          String   @default("pending") // "pending", "approved", "rejected", "cancelled"
   assignedDepartmentManagerId String? // 割り当てられた部署管理者のID
   assignedDepartmentManager   User?   @relation("AssignedLeaveRequests", fields: [assignedDepartmentManagerId], references: [id])
   reviewedBy      String?  // 承認/却下した管理者のID
   reviewedAt      DateTime? // 承認/却下日時
   reviewComment   String?  // 管理者のコメント
+  cancelledAt     DateTime? // 取り下げ日時
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  
+
   @@index([userId])
   @@index([status])
   @@index([createdAt])
@@ -115,22 +118,23 @@ model LeaveRequest {
 model OvertimeRequest {
   id              String   @id @default(cuid())
   userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Restrict) // 労基法: 時間外労働記録を保護
   department      String   // 所属部署
   employeeName    String   // 氏名
   content         String   // 時間外の内容
   overtimeDate    DateTime // 時間外業務の日付
   startTime       DateTime // 開始時刻
   endTime         DateTime // 終了時刻
-  status          String   @default("pending") // "pending", "approved", "rejected"
+  status          String   @default("pending") // "pending", "approved", "rejected", "cancelled"
   assignedDepartmentManagerId String? // 割り当てられた部署管理者のID
   assignedDepartmentManager   User?   @relation("AssignedOvertimeRequests", fields: [assignedDepartmentManagerId], references: [id])
   reviewedBy      String?  // 承認/却下した管理者のID
   reviewedAt      DateTime? // 承認/却下日時
   reviewComment   String?  // 管理者のコメント
+  cancelledAt     DateTime? // 取り下げ日時
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  
+
   @@index([userId])
   @@index([status])
   @@index([createdAt])
@@ -138,3 +142,18 @@ model OvertimeRequest {
   @@index([assignedDepartmentManagerId])
 }
 
+// 監査ログ（append-only: DELETEエンドポイントなし）
+// 労働基準法第109条対応: 承認/却下/取り下げ/打刻の操作履歴を永久保存
+model AuditLog {
+  id          String   @id @default(cuid())
+  entityType  String   // "TimeCard", "TimeCardRequest", "LeaveRequest", "OvertimeRequest"
+  entityId    String   // 対象レコードのID
+  action      String   // "created", "approved", "rejected", "cancelled"
+  performedBy String   // 操作したユーザーのID
+  performedAt DateTime @default(now())
+  detail      String?  // JSON形式の補足情報（コメント等）
+
+  @@index([entityType, entityId])
+  @@index([performedBy])
+  @@index([performedAt])
+}

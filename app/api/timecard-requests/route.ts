@@ -135,6 +135,47 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
+    // 取り下げ処理（本人のみ、pendingのみ）
+    if (body.action === 'cancel') {
+      const { requestId } = body;
+      if (!requestId) {
+        return NextResponse.json({ error: '申請IDが必要です' }, { status: 400 });
+      }
+
+      const timeCardRequest = await prisma.timeCardRequest.findUnique({
+        where: { id: requestId },
+      });
+
+      if (!timeCardRequest) {
+        return NextResponse.json({ error: '申請が見つかりません' }, { status: 404 });
+      }
+
+      if (timeCardRequest.userId !== user.id) {
+        return NextResponse.json({ error: '自分の申請のみ取り下げできます' }, { status: 403 });
+      }
+
+      if (timeCardRequest.status !== 'pending') {
+        return NextResponse.json({ error: '承認待ちの申請のみ取り下げできます' }, { status: 400 });
+      }
+
+      await prisma.$transaction([
+        prisma.timeCardRequest.update({
+          where: { id: requestId },
+          data: { status: 'cancelled', cancelledAt: new Date() },
+        }),
+        prisma.auditLog.create({
+          data: {
+            entityType: 'TimeCardRequest',
+            entityId: requestId,
+            action: 'cancelled',
+            performedBy: user.id,
+          },
+        }),
+      ]);
+
+      return NextResponse.json({ message: '申請を取り下げました' });
+    }
+
     // アクションによって処理を分岐
     if (body.action === 'approve' || body.action === 'reject') {
       // 承認/却下処理（管理者のみ）
@@ -206,6 +247,16 @@ export async function POST(request: NextRequest) {
               reviewComment: comment,
             },
           }),
+          // 監査ログ
+          prisma.auditLog.create({
+            data: {
+              entityType: 'TimeCardRequest',
+              entityId: requestId,
+              action: 'approved',
+              performedBy: user.id,
+              detail: comment ? JSON.stringify({ comment }) : null,
+            },
+          }),
         ]);
 
         return NextResponse.json({
@@ -213,15 +264,26 @@ export async function POST(request: NextRequest) {
         });
       } else {
         // 却下の場合
-        await prisma.timeCardRequest.update({
-          where: { id: requestId },
-          data: {
-            status: 'rejected',
-            reviewedBy: user.id,
-            reviewedAt: new Date(),
-            reviewComment: comment,
-          },
-        });
+        await prisma.$transaction([
+          prisma.timeCardRequest.update({
+            where: { id: requestId },
+            data: {
+              status: 'rejected',
+              reviewedBy: user.id,
+              reviewedAt: new Date(),
+              reviewComment: comment,
+            },
+          }),
+          prisma.auditLog.create({
+            data: {
+              entityType: 'TimeCardRequest',
+              entityId: requestId,
+              action: 'rejected',
+              performedBy: user.id,
+              detail: comment ? JSON.stringify({ comment }) : null,
+            },
+          }),
+        ]);
 
         return NextResponse.json({
           message: '申請を却下しました',

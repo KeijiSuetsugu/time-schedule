@@ -211,7 +211,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PATCH: 有給申請を承認・却下
+// PATCH: 有給申請を承認・却下・取り下げ
 export async function PATCH(request: NextRequest) {
   try {
     const user = getUserFromToken(request);
@@ -219,7 +219,50 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
     }
 
-    // ユーザー情報を取得
+    const body = await request.json();
+    const { id, action, comment } = body;
+
+    if (!id || !action || !['approve', 'reject', 'cancel'].includes(action)) {
+      return NextResponse.json({ error: '無効なリクエストです' }, { status: 400 });
+    }
+
+    // 取り下げ処理（本人のみ、pendingのみ）
+    if (action === 'cancel') {
+      const leaveRequest = await prisma.leaveRequest.findUnique({
+        where: { id },
+      });
+
+      if (!leaveRequest) {
+        return NextResponse.json({ error: '有給申請が見つかりません' }, { status: 404 });
+      }
+
+      if (leaveRequest.userId !== user.userId) {
+        return NextResponse.json({ error: '自分の申請のみ取り下げできます' }, { status: 403 });
+      }
+
+      if (leaveRequest.status !== 'pending') {
+        return NextResponse.json({ error: '承認待ちの申請のみ取り下げできます' }, { status: 400 });
+      }
+
+      await prisma.$transaction([
+        prisma.leaveRequest.update({
+          where: { id },
+          data: { status: 'cancelled', cancelledAt: new Date() },
+        }),
+        prisma.auditLog.create({
+          data: {
+            entityType: 'LeaveRequest',
+            entityId: id,
+            action: 'cancelled',
+            performedBy: user.userId,
+          },
+        }),
+      ]);
+
+      return NextResponse.json({ message: '申請を取り下げました' });
+    }
+
+    // 承認・却下処理（管理者のみ）
     const userInfo = await prisma.user.findUnique({
       where: { id: user.userId },
       select: { role: true, managedDepartment: true },
@@ -227,13 +270,6 @@ export async function PATCH(request: NextRequest) {
 
     if (!userInfo || userInfo.role !== 'admin') {
       return NextResponse.json({ error: '管理者権限が必要です' }, { status: 403 });
-    }
-
-    const body = await request.json();
-    const { id, action, comment } = body;
-
-    if (!id || !action || !['approve', 'reject'].includes(action)) {
-      return NextResponse.json({ error: '無効なリクエストです' }, { status: 400 });
     }
 
     const leaveRequest = await prisma.leaveRequest.findUnique({
@@ -268,25 +304,36 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'この申請は既に処理されています' }, { status: 400 });
     }
 
-    const updatedLeaveRequest = await prisma.leaveRequest.update({
-      where: { id },
-      data: {
-        status: action === 'approve' ? 'approved' : 'rejected',
-        reviewedBy: user.userId,
-        reviewedAt: new Date(),
-        reviewComment: comment || null,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            department: true,
+    const [updatedLeaveRequest] = await prisma.$transaction([
+      prisma.leaveRequest.update({
+        where: { id },
+        data: {
+          status: action === 'approve' ? 'approved' : 'rejected',
+          reviewedBy: user.userId,
+          reviewedAt: new Date(),
+          reviewComment: comment || null,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              department: true,
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.auditLog.create({
+        data: {
+          entityType: 'LeaveRequest',
+          entityId: id,
+          action: action === 'approve' ? 'approved' : 'rejected',
+          performedBy: user.userId,
+          detail: comment ? JSON.stringify({ comment }) : null,
+        },
+      }),
+    ]);
 
     return NextResponse.json(updatedLeaveRequest);
   } catch (error) {

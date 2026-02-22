@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { type, latitude, longitude } = timeCardSchema.parse(body);
 
-    // 位置情報検証: 許可された打刻場所の範囲内かチェック
+    // 位置情報検証: 許可された打刻場所の範囲内かチェック（削除済みは除外）
     const locations = await prisma.location.findMany({
-      where: { enabled: true },
+      where: { enabled: true, deletedAt: null },
     });
 
     if (locations.length === 0) {
@@ -138,6 +138,17 @@ export async function POST(request: NextRequest) {
         location: true,
       },
     });
+
+    // 監査ログを記録（エラーがあっても打刻記録には影響しない）
+    prisma.auditLog.create({
+      data: {
+        entityType: 'TimeCard',
+        entityId: timeCard.id,
+        action: 'created',
+        performedBy: userId,
+        detail: JSON.stringify({ type, locationId }),
+      },
+    }).catch((e) => console.error('AuditLog creation failed:', e));
 
     return NextResponse.json({
       success: true,

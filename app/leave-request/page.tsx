@@ -22,6 +22,7 @@ interface LeaveRequest {
   days: number;
   hours: number;
   status: string;
+  cancelledAt?: string;
   createdAt: string;
 }
 
@@ -77,6 +78,9 @@ export default function LeaveRequestPage() {
   const [hours, setHours] = useState(0);
   const [selectedManagerId, setSelectedManagerId] = useState('');
   const [managers, setManagers] = useState<DepartmentManager[]>([]);
+
+  // 申請完了メッセージ
+  const [message, setMessage] = useState('');
 
   // 過去の申請履歴
   const [myRequests, setMyRequests] = useState<LeaveRequest[]>([]);
@@ -190,7 +194,7 @@ export default function LeaveRequestPage() {
       });
 
       if (response.ok) {
-        alert('有給申請を提出しました');
+        setMessage('✅ 有給申請を提出しました');
         // フォームをリセット
         setSelectedReason('');
         setCustomReason('');
@@ -204,13 +208,64 @@ export default function LeaveRequestPage() {
         loadMyRequests(token);
       } else {
         const data = await response.json();
-        alert(data.error || '申請の提出に失敗しました');
+        setMessage(`❌ ${data.error || '申請の提出に失敗しました'}`);
       }
     } catch (error) {
       console.error('Error:', error);
       alert('申請の提出に失敗しました');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancel = async (req: LeaveRequest) => {
+    if (!confirm('この申請を取り下げますか？\n取り下げ後、旧内容をフォームに転記します。')) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const response = await fetch('/api/leave-requests', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ id: req.id, action: 'cancel' }),
+      });
+
+      if (response.ok) {
+        // 旧値をフォームに転記
+        const startDt = new Date(req.startDate);
+        const endDt = new Date(req.endDate);
+        setLeaveType(req.leaveType);
+        setAbsenceType(req.absenceType);
+        setDepartment(req.department);
+        setEmployeeName(req.employeeName);
+        setStartDate(`${startDt.getUTCFullYear()}-${String(startDt.getUTCMonth() + 1).padStart(2, '0')}-${String(startDt.getUTCDate()).padStart(2, '0')}`);
+        setStartTime(`${String(startDt.getUTCHours()).padStart(2, '0')}:${String(startDt.getUTCMinutes()).padStart(2, '0')}`);
+        setEndDate(`${endDt.getUTCFullYear()}-${String(endDt.getUTCMonth() + 1).padStart(2, '0')}-${String(endDt.getUTCDate()).padStart(2, '0')}`);
+        setEndTime(`${String(endDt.getUTCHours()).padStart(2, '0')}:${String(endDt.getUTCMinutes()).padStart(2, '0')}`);
+        setDays(req.days);
+        setHours(req.hours);
+        const knownReasons = ['私事のため', '体調不良', '家族の看護', '通院', '冠婚葬祭', '育児', '介護', 'リフレッシュ'];
+        if (knownReasons.includes(req.reason)) {
+          setSelectedReason(req.reason);
+          setCustomReason('');
+        } else {
+          setSelectedReason('その他');
+          setCustomReason(req.reason);
+        }
+        setMessage('✅ 取り下げました。内容を修正して再申請してください。');
+        loadMyRequests(token);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        const data = await response.json();
+        alert(data.error || '取り下げに失敗しました');
+      }
+    } catch (error) {
+      console.error('取り下げエラー:', error);
+      alert('取り下げに失敗しました');
     }
   };
 
@@ -222,6 +277,8 @@ export default function LeaveRequestPage() {
         return <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">承認済み</span>;
       case 'rejected':
         return <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">却下</span>;
+      case 'cancelled':
+        return <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">取り下げ済み</span>;
       default:
         return <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded">{status}</span>;
     }
@@ -253,6 +310,11 @@ export default function LeaveRequestPage() {
         {/* 申請フォーム */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold mb-4">新規申請</h2>
+          {message && (
+            <div className={`mb-4 p-4 rounded ${message.includes('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+              {message}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* 届出の種類 */}
             <div>
@@ -486,13 +548,17 @@ export default function LeaveRequestPage() {
 
         {/* 申請履歴 */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold mb-4">申請履歴</h2>
+          <h2 className="text-lg font-semibold mb-2">申請履歴</h2>
+          <p className="text-xs text-gray-500 mb-4">※ 一度提出した申請の内容は変更できません。間違いがある場合は「取り下げて再申請」してください。</p>
           {myRequests.length === 0 ? (
             <p className="text-gray-500 text-center py-8">申請履歴はありません</p>
           ) : (
             <div className="space-y-4">
               {myRequests.map((request) => (
-                <div key={request.id} className="border border-gray-200 rounded-lg p-4">
+                <div
+                  key={request.id}
+                  className={`border rounded-lg p-4 ${request.status === 'cancelled' ? 'border-gray-200 bg-gray-50 opacity-75' : 'border-gray-200'}`}
+                >
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <span className="font-semibold text-gray-900">{request.leaveType}</span>
@@ -508,9 +574,22 @@ export default function LeaveRequestPage() {
                   <p className="text-sm text-gray-600">
                     {request.days}日間（{request.hours}時間）
                   </p>
+                  {request.cancelledAt && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      取り下げ日時: {formatDateTime(request.cancelledAt)}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-400 mt-2">
                     申請日: {formatDateTime(request.createdAt)}
                   </p>
+                  {request.status === 'pending' && (
+                    <button
+                      onClick={() => handleCancel(request)}
+                      className="mt-3 px-4 py-1.5 text-sm text-orange-600 border border-orange-300 rounded-lg hover:bg-orange-50 transition-colors"
+                    >
+                      取り下げて再申請
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

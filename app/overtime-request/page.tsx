@@ -13,6 +13,7 @@ interface OvertimeRequest {
   endTime: string;
   status: string;
   reviewComment?: string;
+  cancelledAt?: string;
   createdAt: string;
 }
 
@@ -40,6 +41,7 @@ export default function OvertimeRequestPage() {
   const [managers, setManagers] = useState<Array<{ id: string; name: string; email: string; department: string | null; managedDepartment: string | null }>>([]);
   const [myRequests, setMyRequests] = useState<OvertimeRequest[]>([]);
   const [showMyRequests, setShowMyRequests] = useState(false);
+  const [message, setMessage] = useState('');
 
   // ユーザー情報を取得して自動入力
   useEffect(() => {
@@ -157,20 +159,57 @@ export default function OvertimeRequestPage() {
         throw new Error(error.error || '申請に失敗しました');
       }
 
-      alert('時間外業務届を提出しました');
-      
+      setMessage('✅ 時間外業務届を提出しました');
+
       // フォームをリセット
       setContent('');
       setOvertimeDate('');
       setStartTime('');
       setEndTime('');
-      
+
       // 申請履歴を再取得
       fetchMyRequests();
     } catch (error: any) {
-      alert(error.message || '時間外業務届の提出に失敗しました');
+      setMessage(`❌ ${error.message || '時間外業務届の提出に失敗しました'}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancel = async (req: OvertimeRequest) => {
+    if (!confirm('この申請を取り下げますか？\n取り下げ後、旧内容をフォームに転記します。')) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const response = await fetch('/api/overtime-requests', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: 'cancel', requestId: req.id }),
+      });
+
+      if (response.ok) {
+        // 旧値をフォームに転記
+        setDepartment(req.department);
+        setEmployeeName(req.employeeName);
+        setContent(req.content);
+        setOvertimeDate(formatDate(req.overtimeDate).replace(/\//g, '-'));
+        setStartTime(formatTime(req.startTime));
+        setEndTime(formatTime(req.endTime));
+        setMessage('✅ 取り下げました。内容を修正して再申請してください。');
+        fetchMyRequests();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        const data = await response.json();
+        setMessage(`❌ ${data.error || '取り下げに失敗しました'}`);
+      }
+    } catch (error) {
+      console.error('取り下げエラー:', error);
+      setMessage('❌ サーバーエラーが発生しました');
     }
   };
 
@@ -211,6 +250,8 @@ export default function OvertimeRequestPage() {
         return <span className="px-3 py-1 text-sm rounded-full bg-green-100 text-green-800">承認済み</span>;
       case 'rejected':
         return <span className="px-3 py-1 text-sm rounded-full bg-red-100 text-red-800">却下</span>;
+      case 'cancelled':
+        return <span className="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-600">取り下げ済み</span>;
       default:
         return <span className="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-800">{status}</span>;
     }
@@ -233,7 +274,12 @@ export default function OvertimeRequestPage() {
         {/* 申請フォーム */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">新規申請</h2>
-          
+          {message && (
+            <div className={`mb-4 p-4 rounded ${message.includes('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+              {message}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 所属 */}
             <div>
@@ -379,7 +425,7 @@ export default function OvertimeRequestPage() {
         {/* 申請履歴 */}
         {showMyRequests && (
           <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl font-semibold text-gray-900">申請履歴</h2>
               <button
                 onClick={() => setShowMyRequests(false)}
@@ -388,6 +434,7 @@ export default function OvertimeRequestPage() {
                 ✕ 閉じる
               </button>
             </div>
+            <p className="text-xs text-gray-500 mb-4">※ 一度提出した申請の内容は変更できません。間違いがある場合は「取り下げて再申請」してください。</p>
 
             {myRequests.length === 0 ? (
               <p className="text-center text-gray-500 py-8">申請履歴がありません</p>
@@ -396,7 +443,7 @@ export default function OvertimeRequestPage() {
                 {myRequests.map((request) => (
                   <div
                     key={request.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${request.status === 'cancelled' ? 'border-gray-200 bg-gray-50 opacity-75' : 'border-gray-200'}`}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div>
@@ -421,10 +468,23 @@ export default function OvertimeRequestPage() {
                           <span className="font-medium">管理者コメント:</span> {request.reviewComment}
                         </p>
                       )}
+                      {request.cancelledAt && (
+                        <p className="text-xs text-gray-400">
+                          取り下げ日時: {formatDateTime(request.cancelledAt)}
+                        </p>
+                      )}
                       <p className="text-xs text-gray-500">
                         申請日時: {formatDateTime(request.createdAt)}
                       </p>
                     </div>
+                    {request.status === 'pending' && (
+                      <button
+                        onClick={() => handleCancel(request)}
+                        className="mt-3 px-4 py-1.5 text-sm text-orange-600 border border-orange-300 rounded-lg hover:bg-orange-50 transition-colors"
+                      >
+                        取り下げて再申請
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

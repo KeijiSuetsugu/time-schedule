@@ -1,0 +1,2 @@
+-- This migration was already applied in 20241201000000_add_department_manager_assignment
+-- Empty migration to resolve missing file error

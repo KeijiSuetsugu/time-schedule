@@ -10,10 +10,11 @@ export const runtime = 'nodejs';
 
 interface TimeCardRecord {
   date: Date;
-  clockIn: Date;
-  clockOut: Date;
+  clockIn?: Date;
+  clockOut?: Date;
   workTime: string;
   workMinutes: number;
+  isLeave?: boolean;
   overtimeStart?: string;
   overtimeEnd?: string;
   overtimeHours?: string;
@@ -145,8 +146,44 @@ export async function GET(request: NextRequest) {
         orderBy: { overtimeDate: 'asc' },
       });
 
+      // 有給申請を取得（承認済みのみ）
+      const leaveRequests = await prisma.leaveRequest.findMany({
+        where: {
+          userId: targetUser.id,
+          status: 'approved',
+          startDate: { lte: period.endDate },
+          endDate: { gte: period.startDate },
+        },
+        orderBy: { startDate: 'asc' },
+      });
+
+      // 有給日セット（JST日付文字列 "YYYY-MM-DD"）を構築
+      const leaveDateSet = new Set<string>();
+      for (const leave of leaveRequests) {
+        const leaveStartJST = new Date(leave.startDate.getTime() + 9 * 60 * 60 * 1000);
+        const leaveEndJST = new Date(leave.endDate.getTime() + 9 * 60 * 60 * 1000);
+        const periodStartJST = new Date(period.startDate.getTime() + 9 * 60 * 60 * 1000);
+        const periodEndJST = new Date(period.endDate.getTime() + 9 * 60 * 60 * 1000);
+
+        const effectiveStart = leaveStartJST < periodStartJST ? periodStartJST : leaveStartJST;
+        const effectiveEnd = leaveEndJST > periodEndJST ? periodEndJST : leaveEndJST;
+
+        const current = new Date(
+          Date.UTC(effectiveStart.getUTCFullYear(), effectiveStart.getUTCMonth(), effectiveStart.getUTCDate())
+        );
+        const end = new Date(
+          Date.UTC(effectiveEnd.getUTCFullYear(), effectiveEnd.getUTCMonth(), effectiveEnd.getUTCDate())
+        );
+
+        while (current <= end) {
+          leaveDateSet.add(current.toISOString().slice(0, 10));
+          current.setUTCDate(current.getUTCDate() + 1);
+        }
+      }
+
       // 出勤・退勤をペアにして勤務時間を計算
       const records: TimeCardRecord[] = [];
+      const timeCardDateSet = new Set<string>();
       let clockIn: typeof timeCards[0] | null = null;
 
       for (const timeCard of timeCards) {
@@ -156,6 +193,11 @@ export async function GET(request: NextRequest) {
           const workTime = (timeCard.timestamp.getTime() - clockIn.timestamp.getTime()) / (1000 * 60); // 分
           const hours = Math.floor(workTime / 60);
           const minutes = Math.floor(workTime % 60);
+
+          // タイムカードがある日付を記録（JST）
+          const clockInJST = new Date(clockIn.timestamp.getTime() + 9 * 60 * 60 * 1000);
+          const dateKey = clockInJST.toISOString().slice(0, 10);
+          timeCardDateSet.add(dateKey);
 
           // この日付の時間外業務を探す
           const clockInDate = new Date(clockIn.timestamp);
@@ -196,6 +238,35 @@ export async function GET(request: NextRequest) {
           clockIn = null;
         }
       }
+
+      // 退勤漏れ処理：ループ後にclockInが残っていれば退勤なしレコードを追加
+      if (clockIn !== null) {
+        const clockInJST = new Date(clockIn.timestamp.getTime() + 9 * 60 * 60 * 1000);
+        const dateKey = clockInJST.toISOString().slice(0, 10);
+        timeCardDateSet.add(dateKey);
+        records.push({
+          date: clockIn.timestamp,
+          clockIn: clockIn.timestamp,
+          clockOut: undefined,
+          workTime: '',
+          workMinutes: 0,
+        });
+      }
+
+      // 有給レコード追加：タイムカードのない有給日を行として追加
+      for (const dateStr of leaveDateSet) {
+        if (!timeCardDateSet.has(dateStr)) {
+          records.push({
+            date: new Date(dateStr + 'T00:00:00Z'),
+            isLeave: true,
+            workTime: '',
+            workMinutes: 0,
+          });
+        }
+      }
+
+      // 日付でソート
+      records.sort((a, b) => a.date.getTime() - b.date.getTime());
 
       // データがなくてもユーザー情報は追加
       allRecords.push({
@@ -240,8 +311,8 @@ export async function GET(request: NextRequest) {
           userDepartment: u.userDepartment,
           records: u.records.map(r => ({
             date: r.date.toISOString(),
-            clockIn: r.clockIn.toISOString(),
-            clockOut: r.clockOut.toISOString(),
+            clockIn: r.clockIn?.toISOString() || null,
+            clockOut: r.clockOut?.toISOString() || null,
             workTime: r.workTime,
             overtimeStart: r.overtimeStart,
             overtimeEnd: r.overtimeEnd,
@@ -324,15 +395,27 @@ async function generateExcelMultiUser(
       worksheet.addRow(['データなし', '', '', '0:00', '', '', '']);
     } else {
       userRecord.records.forEach((record) => {
+        const dateStr = record.date.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
+
+        // 有給行：出勤時刻欄に「有休」、他は空欄
+        if (record.isLeave) {
+          worksheet.addRow([dateStr, '有休', '', '', '', '', '']);
+          return;
+        }
+
         // 日本時間として表示（UTCからJST +9時間）
-        const clockInJST = new Date(record.clockIn.getTime() + 9 * 60 * 60 * 1000);
-        const clockOutJST = new Date(record.clockOut.getTime() + 9 * 60 * 60 * 1000);
-        
+        const clockInJST = new Date(record.clockIn!.getTime() + 9 * 60 * 60 * 1000);
         const clockInTime = `${String(clockInJST.getUTCHours()).padStart(2, '0')}:${String(clockInJST.getUTCMinutes()).padStart(2, '0')}`;
-        const clockOutTime = `${String(clockOutJST.getUTCHours()).padStart(2, '0')}:${String(clockOutJST.getUTCMinutes()).padStart(2, '0')}`;
-        
+
+        // 退勤漏れ：clockOutがなければ空欄
+        let clockOutTime = '';
+        if (record.clockOut) {
+          const clockOutJST = new Date(record.clockOut.getTime() + 9 * 60 * 60 * 1000);
+          clockOutTime = `${String(clockOutJST.getUTCHours()).padStart(2, '0')}:${String(clockOutJST.getUTCMinutes()).padStart(2, '0')}`;
+        }
+
         worksheet.addRow([
-          record.date.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' }),
+          dateStr,
           clockInTime,
           clockOutTime,
           record.workTime,

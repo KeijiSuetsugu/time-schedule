@@ -72,7 +72,9 @@ export async function GET(request: NextRequest) {
     });
 
     const locations = await prisma.location.findMany({
-      where: user?.role === 'admin' ? {} : { enabled: true },
+      where: user?.role === 'admin'
+        ? { deletedAt: null }
+        : { enabled: true, deletedAt: null },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -275,8 +277,10 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await prisma.location.delete({
+    // ソフトデリート（打刻履歴の参照先を保護するため、物理削除は行わない）
+    await prisma.location.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
 
     return NextResponse.json({

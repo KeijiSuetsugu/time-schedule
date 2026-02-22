@@ -154,6 +154,8 @@ export default function AdminTimeCardRequestsPage() {
         return '承認済み';
       case 'rejected':
         return '却下';
+      case 'cancelled':
+        return '取り下げ済み';
       default:
         return status;
     }
@@ -167,6 +169,8 @@ export default function AdminTimeCardRequestsPage() {
         return 'text-green-600 bg-green-50';
       case 'rejected':
         return 'text-red-600 bg-red-50';
+      case 'cancelled':
+        return 'text-gray-500 bg-gray-100';
       default:
         return 'text-gray-600 bg-gray-50';
     }

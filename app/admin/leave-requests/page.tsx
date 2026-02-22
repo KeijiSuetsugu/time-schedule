@@ -151,6 +151,8 @@ export default function AdminLeaveRequestsPage() {
         return <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">承認済み</span>;
       case 'rejected':
         return <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">却下</span>;
+      case 'cancelled':
+        return <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">取り下げ済み</span>;
       default:
         return <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded">{status}</span>;
     }

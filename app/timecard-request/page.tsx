@@ -11,6 +11,7 @@ interface TimeCardRequest {
   status: string;
   reviewComment?: string;
   reviewedAt?: string;
+  cancelledAt?: string;
   createdAt: string;
 }
 
@@ -47,7 +48,6 @@ export default function TimeCardRequestPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      // 部署パラメータを指定せずに全管理者を取得
       const response = await fetch('/api/department-managers', {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -57,7 +57,6 @@ export default function TimeCardRequestPage() {
       if (response.ok) {
         const data = await response.json();
         setManagers(data.managers || []);
-        // デフォルトで最初の管理者を選択
         if (data.managers && data.managers.length > 0 && !selectedManagerId) {
           setSelectedManagerId(data.managers[0].id);
         }
@@ -102,7 +101,6 @@ export default function TimeCardRequestPage() {
         return;
       }
 
-      // 理由を決定
       const finalReason = selectedReason === 'その他' ? customReason : selectedReason;
       if (!finalReason) {
         setMessage('❌ 理由を選択または入力してください');
@@ -116,7 +114,6 @@ export default function TimeCardRequestPage() {
         return;
       }
 
-      // 日付と時刻を結合してISO形式に変換
       const requestedDateTime = new Date(`${requestedDate}T${requestedTime}`);
 
       const response = await fetch('/api/timecard-requests', {
@@ -142,7 +139,7 @@ export default function TimeCardRequestPage() {
         setRequestedDate('');
         setRequestedTime('');
         setSelectedManagerId(managers.length > 0 ? managers[0].id : '');
-        loadMyRequests(); // 申請一覧を再読み込み
+        loadMyRequests();
       } else {
         setMessage(`❌ ${data.error || '申請に失敗しました'}`);
       }
@@ -154,6 +151,51 @@ export default function TimeCardRequestPage() {
     }
   };
 
+  const handleCancel = async (req: TimeCardRequest) => {
+    if (!confirm('この申請を取り下げますか？\n取り下げ後、旧内容をフォームに転記します。')) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch('/api/timecard-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: 'cancel', requestId: req.id }),
+      });
+
+      if (response.ok) {
+        // 旧値をフォームに転記
+        const dt = new Date(req.requestedTime);
+        setRequestType(req.requestType as 'clock_in' | 'clock_out');
+        setRequestedDate(dt.toISOString().slice(0, 10));
+        setRequestedTime(
+          `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`
+        );
+        const knownReasons = ['打刻漏れのため'];
+        if (knownReasons.includes(req.reason)) {
+          setSelectedReason(req.reason);
+          setCustomReason('');
+        } else {
+          setSelectedReason('その他');
+          setCustomReason(req.reason);
+        }
+        setMessage('✅ 取り下げました。内容を修正して再申請してください。');
+        loadMyRequests();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        const data = await response.json();
+        setMessage(`❌ ${data.error || '取り下げに失敗しました'}`);
+      }
+    } catch (error) {
+      console.error('取り下げエラー:', error);
+      setMessage('❌ サーバーエラーが発生しました');
+    }
+  };
+
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending':
@@ -162,6 +204,8 @@ export default function TimeCardRequestPage() {
         return '承認済み';
       case 'rejected':
         return '却下';
+      case 'cancelled':
+        return '取り下げ済み';
       default:
         return status;
     }
@@ -175,6 +219,8 @@ export default function TimeCardRequestPage() {
         return 'text-green-600 bg-green-50';
       case 'rejected':
         return 'text-red-600 bg-red-50';
+      case 'cancelled':
+        return 'text-gray-500 bg-gray-100';
       default:
         return 'text-gray-600 bg-gray-50';
     }
@@ -299,8 +345,8 @@ export default function TimeCardRequestPage() {
                   {managers.map((manager) => (
                     <option key={manager.id} value={manager.id}>
                       {manager.name}
-                      {manager.managedDepartment 
-                        ? ` - ${manager.managedDepartment}管理者` 
+                      {manager.managedDepartment
+                        ? ` - ${manager.managedDepartment}管理者`
                         : ' - 全管理者（全部署を管理）'}
                     </option>
                   ))}
@@ -321,12 +367,16 @@ export default function TimeCardRequestPage() {
         {/* 申請履歴 */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold mb-4">申請履歴</h2>
+          <p className="text-xs text-gray-500 mb-4">※ 一度提出した申請の内容は変更できません。間違いがある場合は「取り下げて再申請」してください。</p>
           {myRequests.length === 0 ? (
             <p className="text-gray-500 text-center py-8">申請履歴がありません</p>
           ) : (
             <div className="space-y-4">
               {myRequests.map((req) => (
-                <div key={req.id} className="border border-gray-200 rounded-lg p-4">
+                <div
+                  key={req.id}
+                  className={`border rounded-lg p-4 ${req.status === 'cancelled' ? 'border-gray-200 bg-gray-50 opacity-75' : 'border-gray-200'}`}
+                >
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <span className="font-semibold">
@@ -346,9 +396,22 @@ export default function TimeCardRequestPage() {
                       管理者コメント: {req.reviewComment}
                     </p>
                   )}
+                  {req.cancelledAt && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      取り下げ日時: {new Date(req.cancelledAt).toLocaleString('ja-JP')}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 mt-2">
                     申請日時: {new Date(req.createdAt).toLocaleString('ja-JP')}
                   </p>
+                  {req.status === 'pending' && (
+                    <button
+                      onClick={() => handleCancel(req)}
+                      className="mt-3 px-4 py-1.5 text-sm text-orange-600 border border-orange-300 rounded-lg hover:bg-orange-50 transition-colors"
+                    >
+                      取り下げて再申請
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -358,4 +421,3 @@ export default function TimeCardRequestPage() {
     </div>
   );
 }
-
